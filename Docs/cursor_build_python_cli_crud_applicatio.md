@@ -23,7 +23,7 @@ Let me create the env.example file with a different name:
 # MongoDB Configuration
 project_db_url=mongodb://localhost:27017/
 DATABASE_NAME=task_list_db
-COLLECTION_NAME=tasks
+COLLECTION_TASKS=tasks
 
 ```
 
@@ -253,7 +253,7 @@ class TaskRepository:
         """Initialize the task repository"""
         load_dotenv()
         self.client = get_mongo_client()
-        collection_name = os.getenv('COLLECTION_NAME', 'tasks')
+        collection_name = os.getenv('COLLECTION_TASKS', 'tasks')
         self.collection: Collection = self.client.get_collection(collection_name)
     
     def create(self, task: Task) -> str:
@@ -928,7 +928,7 @@ Edit the `.env` file with your MongoDB connection details:
 ```env
 project_db_url=mongodb://localhost:27017/
 DATABASE_NAME=task_list_db
-COLLECTION_NAME=tasks
+COLLECTION_TASKS=tasks
 ```
 
 **MongoDB Connection Options:**
@@ -1069,7 +1069,7 @@ ruff check src/
 |----------|-------------|---------|
 | `project_db_url` | MongoDB connection string | `mongodb://localhost:27017/` |
 | `DATABASE_NAME` | Database name | `task_list_db` |
-| `COLLECTION_NAME` | Collection name for tasks | `tasks` |
+| `COLLECTION_TASKS` | Collection name for tasks | `tasks` |
 
 ## Support & Contribution
 - GitHub: [Task_list_proj1](https://github.com/mrsanders2014/Task_list_proj1)
@@ -1142,7 +1142,7 @@ Edit `.env`:
 ```env
 project_db_url=mongodb://localhost:27017/
 DATABASE_NAME=task_list_db
-COLLECTION_NAME=tasks
+COLLECTION_TASKS=tasks
 ```
 
 ### 3. Run
@@ -2082,7 +2082,7 @@ cp env.example .env
 # Edit .env and set:
 # project_db_url=mongodb://localhost:27017/
 # DATABASE_NAME=task_list_db
-# COLLECTION_NAME=tasks
+# COLLECTION_TASKS=tasks
 ```
 
 ### 3. Start MongoDB
@@ -2136,7 +2136,7 @@ The application uses these variables from `.env` or `project_db_url` specificall
 ```env
 project_db_url=mongodb://localhost:27017/    # MongoDB connection string
 DATABASE_NAME=task_list_db                   # Database name
-COLLECTION_NAME=tasks                        # Collection name
+COLLECTION_TASKS=tasks                        # Collection name
 ```
 
 ---
@@ -2322,7 +2322,7 @@ cp env.example .env
 # 3. Edit .env with your MongoDB connection:
 # project_db_url=mongodb://localhost:27017/
 # DATABASE_NAME=task_list_db
-# COLLECTION_NAME=tasks
+# COLLECTION_TASKS=tasks
 
 # 4. Start MongoDB (if local)
 docker run -d -p 27017:27017 --name mongodb mongo:latest
@@ -2367,7 +2367,7 @@ cp env.example .env
 # 3. Edit .env with your MongoDB connection:
 # project_db_url=mongodb://localhost:27017/
 # DATABASE_NAME=task_list_db
-# COLLECTION_NAME=tasks
+# COLLECTION_TASKS=tasks
 
 # 4. Start MongoDB (if local)
 docker run -d -p 27017:27017 --name mongodb mongo:latest

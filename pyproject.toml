@@ -1,6 +1,7 @@
 [project]
 name = "task-list-proj1"
-version = "0.1.0"
+dynamic = ["version"]  # Remove static version and add this line
+# version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -14,3 +15,8 @@ dependencies = [
     "rich>=14.1.0",
     "ruff>=0.13.3",
 ]
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
