@@ -4,8 +4,8 @@
 ## **Project Overview**
 This project is intended to build a full-stack TODO application with user authentication, tasks, and labels. The backend will be a RESTful API built with Python's FastAPI, and the frontend will be a Next.js application. The application will use MongoDB for data persistence. This project is designed to provide hands-on experience with modern web development tools and best practices.
 
-## Features Include: 
-These are the essential features that must be completed for a passing grade.
+## Included Features: 
+
 
 ### User Management
     
@@ -24,16 +24,16 @@ These are the essential features that must be completed for a passing grade.
     Be able to assign one or more labels to a task, so I can easily filter and organize my tasks.
 
 ### Required Task Fields: Every task must include a 
--title 
--optional description 
--priority level (e.g., High, Medium, Low)
--task color
--deadline (due-date)
--time unit for task
--task status
--can task be done in parallel with other tasks?
--if so, list of parallel tasks
--predecessor task
+- title 
+- optional description 
+- priority level (e.g., High, Medium, Low)
+- task color
+- deadline (due-date)
+- time unit for task
+- task status
+- can task be done in parallel with other tasks?
+- if so, list of parallel tasks
+- predecessor task
 
 
 ### Data Persistence
