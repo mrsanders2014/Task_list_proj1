@@ -2,7 +2,7 @@
 ### Author: Michael Sanders 
 
 ## **Project Overview**
-This project is intended to build a full-stack TODO application with user authentication, tasks, and labels. The backend will be a RESTful API built with Python's FastAPI, and the frontend will be a Next.js application. The application will use MongoDB for data persistence. This project is designed to provide hands-on experience with modern web development tools and best practices.
+This project is a Python CLI-based Task Management application with MongoDB integration. It provides comprehensive CRUD operations for managing users and tasks, featuring user authentication, task categorization with labels, priority management, dependency tracking, and rich CLI interface powered by the Rich library.
 
 ## Included Features: 
 
@@ -65,9 +65,210 @@ The project structure should follow best practices for a Next.js application.
 ### GitHubRepository Location/URL
    [Task_list_proj1](https://github.com/mrsanders2014/Task_list_proj1)
 
-## Technical Build and Run Instructions
-Instructions on how to set up and run the application.
+## **Technical Build and Run Instructions**
 
-A list of technologies used.
-A list of completed features (and stretch goals, if any).
+### Prerequisites
+- Python 3.12 or higher
+- MongoDB instance (local or remote)
+- UV package manager (recommended) or pip
+
+### Setup Instructions
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/mrsanders2014/Task_list_proj1.git
+   cd Task_list_proj1
+   ```
+
+2. **Create environment file:**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and configure your MongoDB connection:
+   ```
+   project_db_url=mongodb://localhost:27017/
+   DATABASE_NAME=task_manager
+   ```
+
+3. **Install dependencies:**
+   
+   Using UV (recommended):
+   ```bash
+   uv sync
+   ```
+   
+   Or using pip:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run the application:**
+   ```bash
+   python main.py
+   ```
+
+### MongoDB Setup
+
+Ensure MongoDB is running on your system:
+
+**Local MongoDB:**
+```bash
+mongod
+```
+
+**Or use MongoDB Atlas** (cloud-hosted) and update the `project_db_url` in `.env` accordingly.
+
+### Project Structure
+```
+Task_list_proj1/
+├── src/
+│   └── Task_list_proj1/
+│       ├── model/           # Data models (User, Task, Label)
+│       ├── dbase/           # Database layer (connection, repositories)
+│       ├── bus_rules/       # Business rules (future expansion)
+│       └── cli.py           # CLI interface
+├── tests/                   # Test files
+├── main.py                  # Application entry point
+├── pyproject.toml           # Project configuration
+├── .env                     # Environment variables (not in git)
+└── README.md
+```
+
+## **Technologies Used**
+- **Python 3.12+**: Core programming language
+- **MongoDB**: NoSQL database for data persistence
+- **PyMongo**: MongoDB driver for Python
+- **Rich**: Beautiful terminal interface library
+- **python-dotenv**: Environment variable management
+- **UV**: Modern Python package manager
+
+## **Implemented Features**
+
+### User Management ✓
+- User registration with validation
+- Secure login/logout functionality
+- User profile management (view, update)
+- Password management
+- Account status control (active/inactive)
+- Last login tracking
+
+### Task Management ✓
+- Create tasks with comprehensive attributes:
+  - Title and description
+  - Priority levels (1-10)
+  - Due dates
+  - Custom labels with colors
+  - Time estimation (with units: minutes, hours, days, weeks)
+  - Task status (open, inprocess, completed, deleted)
+  - Notification settings
+  - Task dependencies
+- View tasks with multiple filters:
+  - All tasks
+  - By status
+  - By priority range
+  - By label
+  - Overdue tasks
+- Update tasks
+- Delete tasks (soft delete and hard delete)
+
+### Labeling System ✓
+- Create multiple labels per task
+- Custom label colors (hex format)
+- Filter tasks by label
+- Visual label representation in CLI
+
+### Task Dependencies ✓
+- Link tasks to other tasks
+- Create dependency lists
+- Track task relationships
+
+### Data Persistence ✓
+- MongoDB integration with proper indexing
+- Users collection with unique userid and email
+- Tasks collection with proper relationships
+- Optimized queries for filtering and sorting
+
+### Statistics & Reporting ✓
+- Task count by status
+- Overdue task tracking
+- User activity monitoring
+
+## **Usage Examples**
+
+### Registering a New User
+1. Run the application
+2. Select "Register New User"
+3. Enter your details (firstname, lastname, userid, email, password)
+4. Login with your credentials
+
+### Creating a Task
+1. Login to your account
+2. Navigate to "Task Management" → "Create New Task"
+3. Fill in task details:
+   - Title (required)
+   - Description (optional)
+   - Priority (1-10, optional)
+   - Due date (YYYY-MM-DD format, optional)
+   - Labels (multiple, with colors)
+   - Time estimation
+   - Dependencies (other task IDs)
+
+### Viewing Tasks
+- View all tasks
+- Filter by status (open, inprocess, completed, deleted)
+- Filter by priority range
+- Filter by label name
+- View overdue tasks
+
+## **Data Models**
+
+### User Collection
+```json
+{
+  "_id": "ObjectId",
+  "firstname": "string",
+  "lastname": "string",
+  "userid": "string (unique)",
+  "email": "string (unique)",
+  "password": "string",
+  "status": "active|inactive",
+  "last_login": "datetime"
+}
+```
+
+### Tasks Collection
+```json
+{
+  "_id": "ObjectId",
+  "user_id": "string (references Users.userid)",
+  "title": "string",
+  "description": "string",
+  "priority": "integer (1-10, optional)",
+  "due_date": "datetime (optional)",
+  "labels": [
+    {
+      "name": "string",
+      "color": "string (hex)"
+    }
+  ],
+  "time_unit": "minutes|hours|days|weeks",
+  "estimated_time": "float (optional)",
+  "status": "open|inprocess|completed|deleted",
+  "notification_time_unit": "minutes|hours|days|weeks",
+  "notification_when": "float (optional)",
+  "dependencies": ["task_id", "task_id"],
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+## **Future Enhancements**
+- RESTful API with FastAPI
+- Next.js frontend
+- Task notifications
+- Task scheduling
+- Collaboration features
+- Export/Import functionality
+- Data visualization and analytics
 
