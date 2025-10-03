@@ -2,7 +2,7 @@
 name = "task-list-proj1"
 dynamic = ["version"]  # Remove static version and add this line
 # version = "0.1.0"
-description = "Add your description here"
+description = "Application to allow user to create and track tasks"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
