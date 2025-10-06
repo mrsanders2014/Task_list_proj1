@@ -3,7 +3,7 @@ Unit tests for User model.
 """
 import pytest
 from datetime import datetime
-from src.Task_list_proj1.model.user import User
+from src.model.user import User
 
 
 def test_user_creation():

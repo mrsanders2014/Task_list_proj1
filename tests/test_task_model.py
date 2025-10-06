@@ -3,7 +3,7 @@ Unit tests for Task model.
 """
 import pytest
 from datetime import datetime
-from src.Task_list_proj1.model.task import Task, Label
+from src.model.task import Task, Label
 
 
 def test_label_creation():

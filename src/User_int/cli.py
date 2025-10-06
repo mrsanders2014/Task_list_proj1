@@ -2,6 +2,7 @@
 CLI Interface
 Command-line interface for the Task Manager application using Rich library.
 """
+
 from datetime import datetime
 from typing import Optional, List
 from rich.console import Console
@@ -10,11 +11,11 @@ from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich import box
 
-from .model.user import User
-from .model.task import Task, Label
-from .dbase.user_repository import UserRepository
-from .dbase.task_repository import TaskRepository
-from .dbase.connection import get_db_connection
+from src.model.user import User
+from src.model.task import Task, Label
+from src.dbase.user_repository import UserRepository
+from src.dbase.task_repository import TaskRepository
+from src.dbase.connection import get_db_connection
 
 
 console = Console()

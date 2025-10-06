@@ -79,7 +79,7 @@ class Task:
             created_at: Timestamp when task was created
             updated_at: Timestamp when task was last updated
         """
-        self._id = _id
+        self._id = kwargs.get('_id')
         self.user_id = user_id
         self.title = title
         self.description = description
@@ -92,8 +92,8 @@ class Task:
         self.notification_time_unit = notification_time_unit
         self.notification_when = notification_when
         self.dependencies = dependencies or []
-        self.created_at = created_at or datetime.now()
-        self.updated_at = updated_at or datetime.now()
+        self.created_at = kwargs.get('created_at') or datetime.now()
+        self.updated_at = kwargs.get('updated_at') or datetime.now()
         
         self._validate()
     

@@ -7,8 +7,8 @@ from datetime import datetime
 from bson import ObjectId
 from pymongo.errors import PyMongoError
 
-from ..model.task import Task
-from .connection import get_db_connection
+from src.model.task import Task
+from src.dbase.connection import get_db_connection
 
 
 class TaskRepository:
@@ -52,7 +52,7 @@ class TaskRepository:
             if task_data:
                 return Task.from_dict(task_data)
             return None
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving task by ID: {e}")
             return None
     
@@ -115,7 +115,7 @@ class TaskRepository:
             }
             tasks_data = self.collection.find(query).sort("priority", -1)
             return [Task.from_dict(task_data) for task_data in tasks_data]
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving tasks by priority: {e}")
             return []
     
@@ -137,7 +137,7 @@ class TaskRepository:
             }
             tasks_data = self.collection.find(query).sort("created_at", -1)
             return [Task.from_dict(task_data) for task_data in tasks_data]
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving tasks by label: {e}")
             return []
     
@@ -159,7 +159,7 @@ class TaskRepository:
             }
             tasks_data = self.collection.find(query).sort("due_date", 1)
             return [Task.from_dict(task_data) for task_data in tasks_data]
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving overdue tasks: {e}")
             return []
     
@@ -188,7 +188,7 @@ class TaskRepository:
                 {"$set": update_data}
             )
             return result.modified_count > 0
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error updating task: {e}")
             return False
     
@@ -228,7 +228,7 @@ class TaskRepository:
                 }
             )
             return result.modified_count > 0
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error adding dependency: {e}")
             return False
     
@@ -252,7 +252,7 @@ class TaskRepository:
                 }
             )
             return result.modified_count > 0
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error removing dependency: {e}")
             return False
     
@@ -269,7 +269,7 @@ class TaskRepository:
         try:
             result = self.collection.delete_one({"_id": ObjectId(task_id)})
             return result.deleted_count > 0
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error deleting task: {e}")
             return False
     
@@ -301,7 +301,7 @@ class TaskRepository:
             if status:
                 query["status"] = status
             return self.collection.count_documents(query)
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error counting tasks: {e}")
             return 0
     
@@ -333,6 +333,6 @@ class TaskRepository:
             stats["overdue"] = len(self.get_overdue_tasks(user_id))
             
             return stats
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error getting task statistics: {e}")
             return {}

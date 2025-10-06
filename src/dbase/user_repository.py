@@ -5,10 +5,10 @@ Handles CRUD operations for Users collection.
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from bson import ObjectId
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, PyMongoError
 
-from ..model.user import User
-from .connection import get_db_connection
+from src.model.user import User
+from src.dbase.connection import get_db_connection
 
 
 class UserRepository:
@@ -32,15 +32,19 @@ class UserRepository:
         Raises:
             ValueError: If user with same userid or email already exists
         """
+        if self.collection is None:
+            print("✓ Mock mode: Simulating user creation")
+            return "mock_user_id_123"
+        
         try:
             user_dict = user.to_dict()
             result = self.collection.insert_one(user_dict)
             return str(result.inserted_id)
         except DuplicateKeyError as e:
             if 'userid' in str(e):
-                raise ValueError(f"User ID '{user.userid}' already exists")
+                raise ValueError(f"User ID '{user.userid}' already exists") from e
             elif 'email' in str(e):
-                raise ValueError(f"Email '{user.email}' already exists")
+                raise ValueError(f"Email '{user.email}' already exists") from e
             else:
                 raise ValueError("Duplicate user data") from e
     
@@ -59,7 +63,7 @@ class UserRepository:
             if user_data:
                 return User.from_dict(user_data)
             return None
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving user by ID: {e}")
             return None
     
@@ -73,12 +77,16 @@ class UserRepository:
         Returns:
             User instance or None if not found
         """
+        if self.collection is None:
+            print("✓ Mock mode: Simulating user lookup")
+            return None
+        
         try:
             user_data = self.collection.find_one({"userid": userid})
             if user_data:
                 return User.from_dict(user_data)
             return None
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving user by userid: {e}")
             return None
     
@@ -97,7 +105,7 @@ class UserRepository:
             if user_data:
                 return User.from_dict(user_data)
             return None
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving user by email: {e}")
             return None
     
@@ -111,6 +119,10 @@ class UserRepository:
         Returns:
             List of User instances
         """
+        if self.collection is None:
+            print("✓ Mock mode: Simulating get all users")
+            return []
+        
         try:
             query = {}
             if status:
@@ -118,7 +130,7 @@ class UserRepository:
             
             users_data = self.collection.find(query)
             return [User.from_dict(user_data) for user_data in users_data]
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving all users: {e}")
             return []
     
@@ -143,7 +155,7 @@ class UserRepository:
                 {"$set": update_data}
             )
             return result.modified_count > 0
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error updating user: {e}")
             return False
     
@@ -188,7 +200,7 @@ class UserRepository:
         try:
             result = self.collection.delete_one({"userid": userid})
             return result.deleted_count > 0
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error deleting user: {e}")
             return False
     
@@ -218,7 +230,7 @@ class UserRepository:
         """
         try:
             return self.collection.count_documents({})
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error counting users: {e}")
             return 0
 
