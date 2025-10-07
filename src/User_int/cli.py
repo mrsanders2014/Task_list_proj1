@@ -71,17 +71,17 @@ class TaskManagerCLI:
     def login(self):
         """Handle user login."""
         console.print("\n[bold]Login[/bold]")
-        userid = Prompt.ask("User ID")
+        username = Prompt.ask("Username")
         password = Prompt.ask("Password", password=True)
         
-        user = self.user_repo.authenticate(userid, password)
+        user = self.user_repo.authenticate(username, password)
         if user:
-            if user.status == "inactive":
+            if not user.is_active:
                 console.print("[red]Your account is inactive. Please contact administrator.[/red]")
                 return
             
             self.current_user = user
-            console.print(f"[green]✓ Welcome back, {user.firstname} {user.lastname}![/green]")
+            console.print(f"[green]✓ Welcome back, {user.get_full_name()}![/green]")
         else:
             console.print("[red]✗ Invalid credentials[/red]")
     
@@ -102,12 +102,10 @@ class TaskManagerCLI:
                 return
             
             user = User(
-                firstname=firstname,
-                lastname=lastname,
-                userid=userid,
+                username=userid,
                 email=email,
-                password=password,
-                status="active"
+                first_name=firstname,
+                last_name=lastname
             )
             
             user_id = self.user_repo.create(user)
@@ -496,7 +494,7 @@ class TaskManagerCLI:
             console.print("[red]✗ Password must be at least 6 characters[/red]")
             return
         
-        success = self.user_repo.update(self.current_user.userid, {"password": new_password})
+        success = self.user_repo.update(self.current_user.username, {"password": new_password})
         if success:
             self.current_user.password = new_password
             console.print("[green]✓ Password changed successfully[/green]")

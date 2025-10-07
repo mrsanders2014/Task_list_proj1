@@ -118,7 +118,7 @@ class DatabaseConnection:
             
             # Users collection indexes
             users_collection = db['Users']
-            users_collection.create_index('userid', unique=True)
+            users_collection.create_index('username', unique=True)
             users_collection.create_index('email', unique=True)
             
             # Tasks collection indexes

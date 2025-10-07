@@ -5,7 +5,7 @@ Defines the User data structure and validation.
 from datetime import datetime
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
-from pymongo import ObjectId
+from bson import ObjectId
 
 
 # The @dataclass decorator automatically generates special methods for the class,

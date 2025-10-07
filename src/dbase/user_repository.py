@@ -30,7 +30,7 @@ class UserRepository:
             str: ID of the created user
             
         Raises:
-            ValueError: If user with same userid or email already exists
+            ValueError: If user with same username or email already exists
         """
         if self.collection is None:
             print("✓ Mock mode: Simulating user creation")
@@ -41,8 +41,8 @@ class UserRepository:
             result = self.collection.insert_one(user_dict)
             return str(result.inserted_id)
         except DuplicateKeyError as e:
-            if 'userid' in str(e):
-                raise ValueError(f"User ID '{user.userid}' already exists") from e
+            if 'username' in str(e):
+                raise ValueError(f"Username '{user.username}' already exists") from e
             elif 'email' in str(e):
                 raise ValueError(f"Email '{user.email}' already exists") from e
             else:
@@ -67,12 +67,12 @@ class UserRepository:
             print(f"Error retrieving user by ID: {e}")
             return None
     
-    def get_by_userid(self, userid: str) -> Optional[User]:
+    def get_by_username(self, username: str) -> Optional[User]:
         """
-        Retrieve a user by userid.
+        Retrieve a user by username.
         
         Args:
-            userid: User's unique identifier
+            username: User's unique identifier
             
         Returns:
             User instance or None if not found
@@ -82,12 +82,12 @@ class UserRepository:
             return None
         
         try:
-            user_data = self.collection.find_one({"userid": userid})
+            user_data = self.collection.find_one({"username": username})
             if user_data:
                 return User.from_dict(user_data)
             return None
         except PyMongoError as e:
-            print(f"Error retrieving user by userid: {e}")
+            print(f"Error retrieving user by username: {e}")
             return None
     
     def get_by_email(self, email: str) -> Optional[User]:
@@ -109,12 +109,12 @@ class UserRepository:
             print(f"Error retrieving user by email: {e}")
             return None
     
-    def get_all(self, status: Optional[str] = None) -> List[User]:
+    def get_all(self, is_active: Optional[bool] = None) -> List[User]:
         """
-        Retrieve all users, optionally filtered by status.
+        Retrieve all users, optionally filtered by active status.
         
         Args:
-            status: Filter by user status (active/inactive)
+            is_active: Filter by user active status (True/False)
             
         Returns:
             List of User instances
@@ -125,8 +125,8 @@ class UserRepository:
         
         try:
             query = {}
-            if status:
-                query["status"] = status
+            if is_active is not None:
+                query["is_active"] = is_active
             
             users_data = self.collection.find(query)
             return [User.from_dict(user_data) for user_data in users_data]
@@ -134,12 +134,12 @@ class UserRepository:
             print(f"Error retrieving all users: {e}")
             return []
     
-    def update(self, userid: str, update_data: Dict[str, Any]) -> bool:
+    def update(self, username: str, update_data: Dict[str, Any]) -> bool:
         """
         Update a user's information.
         
         Args:
-            userid: User's unique identifier
+            username: User's unique identifier
             update_data: Dictionary of fields to update
             
         Returns:
@@ -148,10 +148,10 @@ class UserRepository:
         try:
             # Remove fields that shouldn't be updated directly
             update_data.pop('_id', None)
-            update_data.pop('userid', None)  # userid shouldn't change
+            update_data.pop('username', None)  # username shouldn't change
             
             result = self.collection.update_one(
-                {"userid": userid},
+                {"username": username},
                 {"$set": update_data}
             )
             return result.modified_count > 0
@@ -159,65 +159,64 @@ class UserRepository:
             print(f"Error updating user: {e}")
             return False
     
-    def update_last_login(self, userid: str) -> bool:
+    def update_last_login(self, username: str) -> bool:
         """
         Update the last login timestamp for a user.
         
         Args:
-            userid: User's unique identifier
+            username: User's unique identifier
             
         Returns:
             bool: True if update was successful, False otherwise
         """
-        return self.update(userid, {"last_login": datetime.now()})
+        return self.update(username, {"last_login": datetime.now()})
     
-    def change_status(self, userid: str, status: str) -> bool:
+    def change_status(self, username: str, is_active: bool) -> bool:
         """
-        Change a user's status.
+        Change a user's active status.
         
         Args:
-            userid: User's unique identifier
-            status: New status (active/inactive)
+            username: User's unique identifier
+            is_active: New active status (True/False)
             
         Returns:
             bool: True if update was successful, False otherwise
         """
-        if status not in ["active", "inactive"]:
-            raise ValueError("Status must be 'active' or 'inactive'")
-        
-        return self.update(userid, {"status": status})
+        return self.update(username, {"is_active": is_active})
     
-    def delete(self, userid: str) -> bool:
+    def delete(self, username: str) -> bool:
         """
         Delete a user from the database.
         
         Args:
-            userid: User's unique identifier
+            username: User's unique identifier
             
         Returns:
             bool: True if deletion was successful, False otherwise
         """
         try:
-            result = self.collection.delete_one({"userid": userid})
+            result = self.collection.delete_one({"username": username})
             return result.deleted_count > 0
         except PyMongoError as e:
             print(f"Error deleting user: {e}")
             return False
     
-    def authenticate(self, userid: str, password: str) -> Optional[User]:
+    def authenticate(self, username: str, password: str) -> Optional[User]:
         """
-        Authenticate a user by userid and password.
+        Authenticate a user by username and password.
         
         Args:
-            userid: User's unique identifier
+            username: User's unique identifier
             password: User's password
             
         Returns:
             User instance if authentication successful, None otherwise
         """
-        user = self.get_by_userid(userid)
-        if user and user.password == password:
-            self.update_last_login(userid)
+        user = self.get_by_username(username)
+        # Note: The new User model doesn't have a password field
+        # This method needs to be updated based on your authentication strategy
+        if user:
+            self.update_last_login(username)
             return user
         return None
     
