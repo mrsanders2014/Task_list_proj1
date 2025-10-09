@@ -30,7 +30,7 @@ class UserRepository:
             str: ID of the created user
             
         Raises:
-            ValueError: If user with same username or email already exists
+            ValueError: If user with same username 
         """
         if self.collection is None:
             print("✓ Mock mode: Simulating user creation")
@@ -43,8 +43,6 @@ class UserRepository:
         except DuplicateKeyError as e:
             if 'username' in str(e):
                 raise ValueError(f"Username '{user.username}' already exists") from e
-            elif 'email' in str(e):
-                raise ValueError(f"Email '{user.email}' already exists") from e
             else:
                 raise ValueError("Duplicate user data") from e
     

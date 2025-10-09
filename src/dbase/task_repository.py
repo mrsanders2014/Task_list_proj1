@@ -154,10 +154,10 @@ class TaskRepository:
         try:
             query = {
                 "user_id": user_id,
-                "due_date": {"$lt": datetime.now()},
-                "status": {"$nin": ["completed", "deleted"]}
+                "task_mgmt.duedate": {"$lt": datetime.now()},
+                "status": {"$nin": ["Complete", "Deleted"]}
             }
-            tasks_data = self.collection.find(query).sort("due_date", 1)
+            tasks_data = self.collection.find(query).sort("task_mgmt.duedate", 1)
             return [Task.from_dict(task_data) for task_data in tasks_data]
         except PyMongoError as e:
             print(f"Error retrieving overdue tasks: {e}")
@@ -178,10 +178,10 @@ class TaskRepository:
             # Remove fields that shouldn't be updated directly
             update_data.pop('_id', None)
             update_data.pop('user_id', None)  # user_id shouldn't change
-            update_data.pop('created_at', None)  # created_at shouldn't change
+            update_data.pop('createdate', None)  # createdate shouldn't change
             
-            # Update the updated_at timestamp
-            update_data['updated_at'] = datetime.now()
+            # Update the lastmoddate timestamp
+            update_data['lastmoddate'] = datetime.now()
             
             result = self.collection.update_one(
                 {"_id": ObjectId(task_id)},
@@ -192,13 +192,14 @@ class TaskRepository:
             print(f"Error updating task: {e}")
             return False
     
-    def update_status(self, task_id: str, status: str) -> bool:
+    def update_status(self, task_id: str, status: str, reason: str = "") -> bool:
         """
-        Update a task's status.
+        Update a task's status and add to history.
         
         Args:
             task_id: Task's MongoDB ObjectId as string
             status: New status
+            reason: Reason for status change
             
         Returns:
             bool: True if update was successful, False otherwise
@@ -206,55 +207,16 @@ class TaskRepository:
         if status not in Task.VALID_STATUSES:
             raise ValueError(f"Invalid status. Must be one of: {Task.VALID_STATUSES}")
         
-        return self.update(task_id, {"status": status})
-    
-    def add_dependency(self, task_id: str, dependency_id: str) -> bool:
-        """
-        Add a dependency to a task.
-        
-        Args:
-            task_id: Task's MongoDB ObjectId as string
-            dependency_id: ID of the task to depend on
-            
-        Returns:
-            bool: True if addition was successful, False otherwise
-        """
-        try:
-            result = self.collection.update_one(
-                {"_id": ObjectId(task_id)},
-                {
-                    "$addToSet": {"dependencies": dependency_id},
-                    "$set": {"updated_at": datetime.now()}
-                }
-            )
-            return result.modified_count > 0
-        except PyMongoError as e:
-            print(f"Error adding dependency: {e}")
+        # Get the current task to access its status
+        task = self.get_by_id(task_id)
+        if not task:
             return False
-    
-    def remove_dependency(self, task_id: str, dependency_id: str) -> bool:
-        """
-        Remove a dependency from a task.
         
-        Args:
-            task_id: Task's MongoDB ObjectId as string
-            dependency_id: ID of the dependency to remove
-            
-        Returns:
-            bool: True if removal was successful, False otherwise
-        """
-        try:
-            result = self.collection.update_one(
-                {"_id": ObjectId(task_id)},
-                {
-                    "$pull": {"dependencies": dependency_id},
-                    "$set": {"updated_at": datetime.now()}
-                }
-            )
-            return result.modified_count > 0
-        except PyMongoError as e:
-            print(f"Error removing dependency: {e}")
-            return False
+        # Use the task's update_status method which handles history
+        task.update_status(status, reason)
+        
+        # Save the updated task
+        return self.update(task_id, task.to_dict())
     
     def delete(self, task_id: str) -> bool:
         """
@@ -273,17 +235,18 @@ class TaskRepository:
             print(f"Error deleting task: {e}")
             return False
     
-    def soft_delete(self, task_id: str) -> bool:
+    def soft_delete(self, task_id: str, reason: str = "User deleted") -> bool:
         """
-        Soft delete a task by setting its status to 'deleted'.
+        Soft delete a task by setting its status to 'Deleted'.
         
         Args:
             task_id: Task's MongoDB ObjectId as string
+            reason: Reason for deletion
             
         Returns:
             bool: True if update was successful, False otherwise
         """
-        return self.update_status(task_id, "deleted")
+        return self.update_status(task_id, "Deleted", reason)
     
     def count_by_user(self, user_id: str, status: Optional[str] = None) -> int:
         """
@@ -318,18 +281,24 @@ class TaskRepository:
         try:
             stats = {
                 "total": 0,
-                "open": 0,
-                "inprocess": 0,
-                "completed": 0,
-                "deleted": 0,
+                "Created": 0,
+                "Started": 0,
+                "InProcess": 0,
+                "Modified": 0,
+                "Scheduled": 0,
+                "Complete": 0,
+                "Deleted": 0,
                 "overdue": 0
             }
             
             stats["total"] = self.count_by_user(user_id)
-            stats["open"] = self.count_by_user(user_id, "open")
-            stats["inprocess"] = self.count_by_user(user_id, "inprocess")
-            stats["completed"] = self.count_by_user(user_id, "completed")
-            stats["deleted"] = self.count_by_user(user_id, "deleted")
+            stats["Created"] = self.count_by_user(user_id, "Created")
+            stats["Started"] = self.count_by_user(user_id, "Started")
+            stats["InProcess"] = self.count_by_user(user_id, "InProcess")
+            stats["Modified"] = self.count_by_user(user_id, "Modified")
+            stats["Scheduled"] = self.count_by_user(user_id, "Scheduled")
+            stats["Complete"] = self.count_by_user(user_id, "Complete")
+            stats["Deleted"] = self.count_by_user(user_id, "Deleted")
             stats["overdue"] = len(self.get_overdue_tasks(user_id))
             
             return stats

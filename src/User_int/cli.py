@@ -118,7 +118,7 @@ class TaskManagerCLI:
     
     def show_main_menu(self):
         """Display main menu after login."""
-        console.print(f"\n[bold cyan]Logged in as: {self.current_user.firstname} {self.current_user.lastname}[/bold cyan]")
+        console.print(f"\n[bold cyan]Logged in as: {self.current_user.get_full_name()}[/bold cyan]")
         console.print("\n[bold]Main Menu[/bold]")
         console.print("1. Task Management")
         console.print("2. User Profile")
@@ -231,19 +231,27 @@ class TaskManagerCLI:
                     if not Confirm.ask("Add another dependency?", default=False):
                         break
             
+            # Create task management details if any management fields are provided
+            task_mgmt = None
+            if priority or due_date or estimated_time:
+                from src.model.task import TaskMgmtDetails
+                task_mgmt = TaskMgmtDetails(
+                    priority=priority if priority else 1,
+                    duedate=due_date,
+                    time_unit=time_unit,
+                    estimated_time_to_complete=estimated_time,
+                    notify_time=notification_when if notification_when else 0,
+                    notify_time_units=notification_time_unit,
+                    notification_wanted="Y" if notification_when else "N"
+                )
+            
             task = Task(
-                user_id=self.current_user.userid,
+                user_id=str(self.current_user._id) if self.current_user._id else self.current_user.username,
                 title=title,
                 description=description,
-                priority=priority,
-                due_date=due_date,
                 labels=labels,
-                time_unit=time_unit,
-                estimated_time=estimated_time,
-                status=status,
-                notification_time_unit=notification_time_unit,
-                notification_when=notification_when,
-                dependencies=dependencies
+                task_mgmt=task_mgmt,
+                status=status.capitalize() if status == "open" else status
             )
             
             task_id = self.task_repo.create(task)
@@ -256,24 +264,27 @@ class TaskManagerCLI:
     
     def view_all_tasks(self):
         """View all tasks for the current user."""
-        tasks = self.task_repo.get_by_user(self.current_user.userid)
+        user_id = str(self.current_user._id) if self.current_user._id else self.current_user.username
+        tasks = self.task_repo.get_by_user(user_id)
         self._display_tasks(tasks, "All Tasks")
     
     def view_tasks_by_status(self):
         """View tasks filtered by status."""
         status = Prompt.ask(
             "Status",
-            choices=["open", "inprocess", "completed", "deleted"]
+            choices=["Created", "Started", "InProcess", "Modified", "Scheduled", "Complete", "Deleted"]
         )
-        tasks = self.task_repo.get_by_user(self.current_user.userid, status=status)
+        user_id = str(self.current_user._id) if self.current_user._id else self.current_user.username
+        tasks = self.task_repo.get_by_user(user_id, status=status)
         self._display_tasks(tasks, f"Tasks - Status: {status}")
     
     def view_tasks_by_priority(self):
         """View tasks filtered by priority range."""
         min_priority = int(Prompt.ask("Minimum priority", default="1"))
         max_priority = int(Prompt.ask("Maximum priority", default="10"))
+        user_id = str(self.current_user._id) if self.current_user._id else self.current_user.username
         tasks = self.task_repo.get_by_priority(
-            self.current_user.userid,
+            user_id,
             min_priority,
             max_priority
         )
@@ -282,12 +293,14 @@ class TaskManagerCLI:
     def view_tasks_by_label(self):
         """View tasks filtered by label."""
         label_name = Prompt.ask("Label name")
-        tasks = self.task_repo.get_by_label(self.current_user.userid, label_name)
+        user_id = str(self.current_user._id) if self.current_user._id else self.current_user.username
+        tasks = self.task_repo.get_by_label(user_id, label_name)
         self._display_tasks(tasks, f"Tasks - Label: {label_name}")
     
     def view_overdue_tasks(self):
         """View overdue tasks."""
-        tasks = self.task_repo.get_overdue_tasks(self.current_user.userid)
+        user_id = str(self.current_user._id) if self.current_user._id else self.current_user.username
+        tasks = self.task_repo.get_overdue_tasks(user_id)
         self._display_tasks(tasks, "Overdue Tasks")
     
     def _display_tasks(self, tasks: List[Task], title: str):
@@ -306,8 +319,8 @@ class TaskManagerCLI:
         
         for task in tasks:
             task_id = str(task._id) if task._id else "N/A"
-            priority = str(task.priority) if task.priority else "None"
-            due_date = task.due_date.strftime("%Y-%m-%d") if task.due_date else "None"
+            priority = str(task.task_mgmt.priority) if task.task_mgmt else "None"
+            due_date = task.task_mgmt.duedate.strftime("%Y-%m-%d") if task.task_mgmt and task.task_mgmt.duedate else "None"
             labels = ", ".join([label.name for label in task.labels]) if task.labels else "None"
             
             table.add_row(
@@ -335,7 +348,8 @@ class TaskManagerCLI:
             console.print("[red]✗ Task not found[/red]")
             return
         
-        if task.user_id != self.current_user.userid:
+        user_id = str(self.current_user._id) if self.current_user._id else self.current_user.username
+        if task.user_id != user_id:
             console.print("[red]✗ You don't have permission to update this task[/red]")
             return
         
@@ -355,11 +369,18 @@ class TaskManagerCLI:
         
         status = Prompt.ask(
             "Status",
-            choices=["open", "inprocess", "completed", "deleted"],
+            choices=["Created", "Started", "InProcess", "Modified", "Scheduled", "Complete", "Deleted"],
             default=task.status
         )
         if status != task.status:
-            update_data["status"] = status
+            reason = Prompt.ask("Reason for status change", default="User updated")
+            success = self.task_repo.update_status(task_id, status, reason)
+            if success:
+                console.print("[green]✓ Task status updated successfully[/green]")
+                return
+            else:
+                console.print("[red]✗ Task status update failed[/red]")
+                return
         
         if update_data:
             success = self.task_repo.update(task_id, update_data)
@@ -384,7 +405,8 @@ class TaskManagerCLI:
             console.print("[red]✗ Task not found[/red]")
             return
         
-        if task.user_id != self.current_user.userid:
+        user_id = str(self.current_user._id) if self.current_user._id else self.current_user.username
+        if task.user_id != user_id:
             console.print("[red]✗ You don't have permission to delete this task[/red]")
             return
         
@@ -398,7 +420,8 @@ class TaskManagerCLI:
         
         if Confirm.ask(f"Are you sure you want to {delete_type} delete this task?"):
             if delete_type == "soft":
-                success = self.task_repo.soft_delete(task_id)
+                reason = Prompt.ask("Reason for deletion", default="User deleted")
+                success = self.task_repo.soft_delete(task_id, reason)
             else:
                 success = self.task_repo.delete(task_id)
             
@@ -435,12 +458,12 @@ class TaskManagerCLI:
         table.add_column("Field", style="cyan")
         table.add_column("Value", style="white")
         
-        table.add_row("User ID", self.current_user.userid)
-        table.add_row("First Name", self.current_user.firstname)
-        table.add_row("Last Name", self.current_user.lastname)
+        table.add_row("Username", self.current_user.username)
+        table.add_row("First Name", self.current_user.first_name or "N/A")
+        table.add_row("Last Name", self.current_user.last_name or "N/A")
         table.add_row("Email", self.current_user.email)
-        table.add_row("Status", self.current_user.status)
-        table.add_row("Last Login", str(self.current_user.last_login))
+        table.add_row("Status", "Active" if self.current_user.is_active else "Inactive")
+        table.add_row("Last Login", str(self.current_user.last_login) if self.current_user.last_login else "Never")
         
         console.print(table)
     
@@ -451,23 +474,23 @@ class TaskManagerCLI:
         
         update_data = {}
         
-        firstname = Prompt.ask("First Name", default=self.current_user.firstname)
-        if firstname != self.current_user.firstname:
-            update_data["firstname"] = firstname
+        firstname = Prompt.ask("First Name", default=self.current_user.first_name or "")
+        if firstname and firstname != self.current_user.first_name:
+            update_data["first_name"] = firstname
         
-        lastname = Prompt.ask("Last Name", default=self.current_user.lastname)
-        if lastname != self.current_user.lastname:
-            update_data["lastname"] = lastname
+        lastname = Prompt.ask("Last Name", default=self.current_user.last_name or "")
+        if lastname and lastname != self.current_user.last_name:
+            update_data["last_name"] = lastname
         
         email = Prompt.ask("Email", default=self.current_user.email)
         if email != self.current_user.email:
             update_data["email"] = email
         
         if update_data:
-            success = self.user_repo.update(self.current_user.userid, update_data)
+            success = self.user_repo.update(self.current_user.username, update_data)
             if success:
                 # Refresh current user
-                self.current_user = self.user_repo.get_by_userid(self.current_user.userid)
+                self.current_user = self.user_repo.get_by_username(self.current_user.username)
                 console.print("[green]✓ Profile updated successfully[/green]")
             else:
                 console.print("[red]✗ Profile update failed[/red]")
@@ -477,44 +500,26 @@ class TaskManagerCLI:
     def change_password(self):
         """Change user password."""
         console.print("\n[bold]Change Password[/bold]")
-        
-        current_password = Prompt.ask("Current Password", password=True)
-        if current_password != self.current_user.password:
-            console.print("[red]✗ Incorrect current password[/red]")
-            return
-        
-        new_password = Prompt.ask("New Password", password=True)
-        confirm_password = Prompt.ask("Confirm New Password", password=True)
-        
-        if new_password != confirm_password:
-            console.print("[red]✗ Passwords do not match[/red]")
-            return
-        
-        if len(new_password) < 6:
-            console.print("[red]✗ Password must be at least 6 characters[/red]")
-            return
-        
-        success = self.user_repo.update(self.current_user.username, {"password": new_password})
-        if success:
-            self.current_user.password = new_password
-            console.print("[green]✓ Password changed successfully[/green]")
-        else:
-            console.print("[red]✗ Password change failed[/red]")
+        console.print("[yellow]Password management is not implemented in this version.[/yellow]")
+        console.print("[yellow]Please use external authentication system.[/yellow]")
     
     def change_user_status(self):
         """Change user status."""
-        console.print("\n[bold]Change Status[/bold]")
+        console.print("\n[bold]Change Account Status[/bold]")
         
-        status = Prompt.ask(
+        current_status = "active" if self.current_user.is_active else "inactive"
+        new_status = Prompt.ask(
             "New Status",
             choices=["active", "inactive"],
-            default=self.current_user.status
+            default=current_status
         )
         
-        if status != self.current_user.status:
-            success = self.user_repo.change_status(self.current_user.userid, status)
+        is_active = (new_status == "active")
+        
+        if is_active != self.current_user.is_active:
+            success = self.user_repo.change_status(self.current_user.username, is_active)
             if success:
-                self.current_user.status = status
+                self.current_user.is_active = is_active
                 console.print("[green]✓ Status changed successfully[/green]")
             else:
                 console.print("[red]✗ Status change failed[/red]")
@@ -525,24 +530,28 @@ class TaskManagerCLI:
         """View task statistics for the current user."""
         console.print("\n[bold]Task Statistics[/bold]")
         
-        stats = self.task_repo.get_task_statistics(self.current_user.userid)
+        user_id = str(self.current_user._id) if self.current_user._id else self.current_user.username
+        stats = self.task_repo.get_task_statistics(user_id)
         
         table = Table(box=box.ROUNDED)
         table.add_column("Metric", style="cyan")
         table.add_column("Count", style="white")
         
         table.add_row("Total Tasks", str(stats.get("total", 0)))
-        table.add_row("Open", str(stats.get("open", 0)))
-        table.add_row("In Process", str(stats.get("inprocess", 0)))
-        table.add_row("Completed", str(stats.get("completed", 0)))
-        table.add_row("Deleted", str(stats.get("deleted", 0)))
+        table.add_row("Created", str(stats.get("Created", 0)))
+        table.add_row("Started", str(stats.get("Started", 0)))
+        table.add_row("In Process", str(stats.get("InProcess", 0)))
+        table.add_row("Modified", str(stats.get("Modified", 0)))
+        table.add_row("Scheduled", str(stats.get("Scheduled", 0)))
+        table.add_row("Complete", str(stats.get("Complete", 0)))
+        table.add_row("Deleted", str(stats.get("Deleted", 0)))
         table.add_row("Overdue", str(stats.get("overdue", 0)))
         
         console.print(table)
     
     def logout(self):
         """Log out the current user."""
-        console.print(f"[cyan]Goodbye, {self.current_user.firstname}![/cyan]")
+        console.print(f"[cyan]Goodbye, {self.current_user.get_full_name()}![/cyan]")
         self.current_user = None
 
 
