@@ -6,7 +6,10 @@ description = "Application to allow user to create and track tasks"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "beanie>=2.0.0",
     "black>=25.9.0",
+    "fastapi>=0.118.2",
+    "motor[sdam]>=3.7.1",
     "mypy>=1.18.2",
     "pylint>=3.3.8",
     "pymongo>=4.15.2",
@@ -14,6 +17,7 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "rich>=14.1.0",
     "ruff>=0.13.3",
+    "uvicorn>=0.37.0",
 ]
 
 [build-system]
