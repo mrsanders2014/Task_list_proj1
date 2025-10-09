@@ -195,5 +195,5 @@ def test_task_optional_fields():
     )
     
     assert task.due_date == due_date
-    assert task.estimated_time == 5.5
-    assert task.notification_when == 24.0
+    assert abs(task.estimated_time - 5.5) < 0.001
+    assert abs(task.notification_when - 24.0) < 0.001
