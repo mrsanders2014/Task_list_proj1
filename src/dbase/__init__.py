@@ -1,15 +1,13 @@
 """
 Database Package
-Contains database connection and repository classes.
+Contains Beanie ODM initialization and database connection.
 """
-from .connection import DatabaseConnection, get_db_connection
-from .user_repository import UserRepository
-from .task_repository import TaskRepository
+from .beanie_init import BeanieDatabase, initialize_beanie, close_beanie, get_beanie_db
 
 __all__ = [
-    'DatabaseConnection',
-    'get_db_connection',
-    'UserRepository',
-    'TaskRepository'
+    'BeanieDatabase',
+    'initialize_beanie',
+    'close_beanie',
+    'get_beanie_db'
 ]
 

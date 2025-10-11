@@ -1,15 +1,16 @@
 # Task Manager FastAPI Application
 
-This application has been refactored from a CLI-based system to a RESTful API using FastAPI.
+This application has been refactored from a CLI-based system to a RESTful API using FastAPI and migrated to use Beanie ODM for MongoDB operations.
 
 ## Features
 
-- **User Management**: Create, read, update, and delete users
-- **Task Management**: Full CRUD operations for tasks with advanced filtering
+- **User Management**: Create, read, update, and delete users with Beanie ODM
+- **Task Management**: Full CRUD operations for tasks with advanced filtering and relationships
 - **Task Statistics**: Get comprehensive statistics for user tasks
 - **Status Management**: Update task status with history tracking
 - **Priority & Label Support**: Organize tasks with priorities and labels
 - **Due Date Management**: Set due dates and track overdue tasks
+- **Async Operations**: Full async/await support with Beanie ODM
 
 ## Quick Start
 
@@ -55,17 +56,23 @@ The API will be available at `http://localhost:8000`
 | GET | `/tasks/{task_id}` | Get task by ID |
 | PUT | `/tasks/{task_id}` | Update task information |
 | PATCH | `/tasks/{task_id}/status` | Update task status |
-| DELETE | `/tasks/{task_id}` | Delete a task (soft or hard) |
-| GET | `/tasks/user/{user_id}/statistics` | Get task statistics for user |
+| DELETE | `/tasks/{task_id}` | Delete a task |
+| GET | `/tasks/user/{user_id}` | Get all tasks for a specific user |
+| GET | `/tasks/statistics/overview` | Get comprehensive task statistics |
 
-### Query Parameters for GET /tasks/
 
+### Query Parameters
+
+**GET /tasks/:**
 - `user_id`: Filter by user ID
-- `status`: Filter by task status
+- `task_status`: Filter by task status
 - `min_priority`: Minimum priority level (1-10)
 - `max_priority`: Maximum priority level (1-10)
 - `label_name`: Filter by label name
 - `overdue_only`: Show only overdue tasks (true/false)
+- `skip`: Number of tasks to skip (pagination)
+- `limit`: Maximum number of tasks to return (pagination)
+
 
 ## Example Usage
 
@@ -85,17 +92,15 @@ curl -X POST "http://localhost:8000/users/" \
 ### Create a Task
 
 ```bash
-curl -X POST "http://localhost:8000/tasks/?user_id=USER_ID" \
+curl -X POST "http://localhost:8000/tasks/" \
   -H "Content-Type: application/json" \
   -d '{
+    "user_id": "USER_ID",
     "title": "Complete project documentation",
     "description": "Write comprehensive API documentation",
     "status": "Created",
-    "task_mgmt": {
-      "priority": 3,
-      "time_unit": "hours",
-      "estimated_time_to_complete": 4.0
-    },
+    "priority": 3,
+    "estimated_time": 4.0,
     "labels": [
       {
         "name": "documentation",
@@ -104,6 +109,7 @@ curl -X POST "http://localhost:8000/tasks/?user_id=USER_ID" \
     ]
   }'
 ```
+
 
 ### Get User Tasks
 
@@ -125,8 +131,9 @@ curl -X PATCH "http://localhost:8000/tasks/TASK_ID/status" \
 ### Get Task Statistics
 
 ```bash
-curl "http://localhost:8000/tasks/user/USER_ID/statistics"
+curl "http://localhost:8000/tasks/statistics/overview"
 ```
+
 
 ## Data Models
 
@@ -145,40 +152,40 @@ curl "http://localhost:8000/tasks/user/USER_ID/statistics"
 
 ```json
 {
+  "user_id": "string (required)",
   "title": "string (max 50 chars)",
   "description": "string (max 250 chars, optional)",
   "status": "Created|Started|InProcess|Modified|Scheduled|Complete|Deleted",
+  "priority": "number (1-10, optional)",
+  "estimated_time": "number (optional)",
+  "due_date": "datetime (optional)",
   "labels": [
     {
       "name": "string",
       "color": "#hexcolor"
     }
-  ],
-  "task_mgmt": {
-    "priority": 1-10,
-    "duedate": "datetime (optional)",
-    "time_unit": "minutes|hours|days|weeks|months|years",
-    "estimated_time_to_complete": "number (optional)",
-    "notify_time": "number",
-    "notify_time_units": "minutes|hours|days|weeks|months|years",
-    "notification_wanted": "Y|N"
-  }
+  ]
 }
 ```
+
 
 ## Configuration
 
 The application uses environment variables for configuration:
 
-- `MONGO_URI`: MongoDB connection string
-- `DB_NAME`: Database name
+- `project_db_url`: MongoDB connection string
+- `DATABASE_NAME`: Database name
+- `MOCK_MODE`: Set to 'true' for testing without MongoDB connection
 
 Create a `.env` file in the project root:
 
 ```
-MONGO_URI=mongodb://localhost:27017
-DB_NAME=task_manager
+project_db_url=mongodb://localhost:27017
+DATABASE_NAME=task_manager
+MOCK_MODE=false
 ```
+
+**Note**: The application now uses Beanie ODM for MongoDB operations, providing better type safety and async support.
 
 ## Development
 
@@ -201,15 +208,23 @@ uv run ruff check src/
 uv run mypy src/
 ```
 
-## Migration from CLI
+## Migration History
 
-The application has been completely refactored from CLI to API:
+The application has undergone two major migrations:
 
+### 1. CLI to FastAPI Migration
 - ✅ Removed CLI interface (`src/User_int/cli.py`)
 - ✅ Created FastAPI application with full CRUD endpoints
-- ✅ Maintained all existing data models and repositories
 - ✅ Added comprehensive API documentation
 - ✅ Implemented proper error handling and validation
 - ✅ Added CORS support for web frontend integration
 
-All existing functionality is now available through HTTP endpoints with proper REST conventions.
+### 2. PyMongo to Beanie ODM Migration
+- ✅ Migrated from PyMongo repositories to Beanie ODM
+- ✅ Created new Beanie document models with proper relationships
+- ✅ Implemented full async/await support
+- ✅ Enhanced type safety and validation
+- ✅ Added comprehensive test coverage for all models
+- ✅ Improved database connection management
+
+All functionality is now available through modern HTTP endpoints with proper REST conventions and async support.

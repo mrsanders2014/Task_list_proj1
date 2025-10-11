@@ -1,12 +1,10 @@
 """
-User API endpoints for FastAPI application.
+Beanie User API endpoints for FastAPI application.
 """
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Query
-from fastapi.responses import JSONResponse
 
-from src.model.user import User
-from src.dbase.user_repository import UserRepository
+from src.models.beanie_user import BeanieUser
 from src.api.schemas import (
     UserCreateSchema, 
     UserUpdateSchema, 
@@ -28,13 +26,11 @@ async def create_user(user_data: UserCreateSchema):
         Created user information
         
     Raises:
-        HTTPException: If user creation fails
+        HTTPException: If user creation fails or username/email already exists
     """
     try:
-        user_repo = UserRepository()
-        
         # Check if username already exists
-        existing_user = user_repo.get_by_username(user_data.username)
+        existing_user = await BeanieUser.find_one(BeanieUser.username == user_data.username)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -42,7 +38,7 @@ async def create_user(user_data: UserCreateSchema):
             )
         
         # Check if email already exists
-        existing_email = user_repo.get_by_email(user_data.email)
+        existing_email = await BeanieUser.find_one(BeanieUser.email == user_data.email)
         if existing_email:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -50,18 +46,20 @@ async def create_user(user_data: UserCreateSchema):
             )
         
         # Create new user
-        user = User(
+        user = BeanieUser(
             username=user_data.username,
             email=user_data.email,
             first_name=user_data.first_name,
             last_name=user_data.last_name
         )
         
-        user_id = user_repo.create(user)
-        user._id = user_id
+        # Save to database
+        await user.insert()
         
         return user.to_response()
         
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -75,19 +73,34 @@ async def create_user(user_data: UserCreateSchema):
 
 
 @router.get("/", response_model=List[UserResponseSchema])
-async def get_users(is_active: Optional[bool] = Query(None, description="Filter by active status")):
+async def get_users(
+    skip: int = Query(0, ge=0, description="Number of users to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of users to return"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status")
+):
     """
-    Get all users, optionally filtered by active status.
+    Retrieve all users with optional filtering and pagination.
     
     Args:
-        is_active: Optional filter by user active status
+        skip: Number of users to skip
+        limit: Maximum number of users to return
+        is_active: Filter by active status
         
     Returns:
         List of users
+        
+    Raises:
+        HTTPException: If retrieval fails
     """
     try:
-        user_repo = UserRepository()
-        users = user_repo.get_all(is_active=is_active)
+        # Build query
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        
+        # Find users with pagination
+        users = await BeanieUser.find(query).skip(skip).limit(limit).to_list()
+        
         return [user.to_response() for user in users]
         
     except Exception as e:
@@ -100,21 +113,19 @@ async def get_users(is_active: Optional[bool] = Query(None, description="Filter 
 @router.get("/{user_id}", response_model=UserResponseSchema)
 async def get_user(user_id: str):
     """
-    Get a user by ID.
+    Retrieve a specific user by ID.
     
     Args:
-        user_id: User's MongoDB ObjectId
+        user_id: User ID
         
     Returns:
         User information
         
     Raises:
-        HTTPException: If user not found
+        HTTPException: If user not found or retrieval fails
     """
     try:
-        user_repo = UserRepository()
-        user = user_repo.get_by_id(user_id)
-        
+        user = await BeanieUser.get(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -132,24 +143,165 @@ async def get_user(user_id: str):
         ) from e
 
 
+@router.put("/{user_id}", response_model=UserResponseSchema)
+async def update_user(user_id: str, user_data: UserUpdateSchema):
+    """
+    Update an existing user.
+    
+    Args:
+        user_id: User ID
+        user_data: User update data
+        
+    Returns:
+        Updated user information
+        
+    Raises:
+        HTTPException: If user not found, update fails, or email already exists
+    """
+    try:
+        # Find existing user
+        user = await BeanieUser.get(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with ID '{user_id}' not found"
+            )
+        
+        # Check if email is being updated and if it's already taken
+        if user_data.email is not None and user_data.email != user.email:
+            existing_email = await BeanieUser.find_one(BeanieUser.email == user_data.email)
+            if existing_email and existing_email.id != user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Email '{user_data.email}' already exists"
+                )
+        
+        # Update user fields
+        update_data = {}
+        if user_data.username is not None:
+            update_data["username"] = user_data.username
+        if user_data.email is not None:
+            update_data["email"] = user_data.email
+        if user_data.first_name is not None:
+            update_data["first_name"] = user_data.first_name
+        if user_data.last_name is not None:
+            update_data["last_name"] = user_data.last_name
+        
+        # Apply updates
+        for field, value in update_data.items():
+            setattr(user, field, value)
+        
+        # Update timestamp
+        user.updated_at = user.updated_at or user.created_at
+        
+        # Save changes
+        await user.save()
+        
+        return user.to_response()
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update user: {str(e)}"
+        ) from e
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(user_id: str):
+    """
+    Delete a user.
+    
+    Args:
+        user_id: User ID
+        
+    Raises:
+        HTTPException: If user not found or deletion fails
+    """
+    try:
+        user = await BeanieUser.get(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with ID '{user_id}' not found"
+            )
+        
+        await user.delete()
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete user: {str(e)}"
+        ) from e
+
+
+@router.patch("/{user_id}/status", response_model=UserResponseSchema)
+async def change_user_status(user_id: str, is_active: bool):
+    """
+    Change user active status.
+    
+    Args:
+        user_id: User ID
+        is_active: New active status
+        
+    Returns:
+        Updated user information
+        
+    Raises:
+        HTTPException: If user not found or status change fails
+    """
+    try:
+        user = await BeanieUser.get(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with ID '{user_id}' not found"
+            )
+        
+        # Update status
+        if is_active:
+            user.activate()
+        else:
+            user.deactivate()
+        
+        # Save changes
+        await user.save()
+        
+        return user.to_response()
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to change user status: {str(e)}"
+        ) from e
+
+
 @router.get("/username/{username}", response_model=UserResponseSchema)
 async def get_user_by_username(username: str):
     """
-    Get a user by username.
+    Retrieve a user by username.
     
     Args:
-        username: User's username
+        username: Username
         
     Returns:
         User information
         
     Raises:
-        HTTPException: If user not found
+        HTTPException: If user not found or retrieval fails
     """
     try:
-        user_repo = UserRepository()
-        user = user_repo.get_by_username(username)
-        
+        user = await BeanieUser.find_one(BeanieUser.username == username)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -167,158 +319,34 @@ async def get_user_by_username(username: str):
         ) from e
 
 
-@router.put("/{user_id}", response_model=UserResponseSchema)
-async def update_user(user_id: str, user_data: UserUpdateSchema):
+@router.get("/email/{email}", response_model=UserResponseSchema)
+async def get_user_by_email(email: str):
     """
-    Update a user's information.
+    Retrieve a user by email.
     
     Args:
-        user_id: User's MongoDB ObjectId
-        user_data: User update data
+        email: Email address
         
     Returns:
-        Updated user information
+        User information
         
     Raises:
-        HTTPException: If user not found or update fails
+        HTTPException: If user not found or retrieval fails
     """
     try:
-        user_repo = UserRepository()
-        
-        # Check if user exists
-        user = user_repo.get_by_id(user_id)
+        user = await BeanieUser.find_one(BeanieUser.email == email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with ID '{user_id}' not found"
+                detail=f"User with email '{email}' not found"
             )
         
-        # Prepare update data
-        update_data = {}
-        if user_data.email is not None:
-            # Check if email is already taken by another user
-            existing_email = user_repo.get_by_email(user_data.email)
-            if existing_email and existing_email.username != user.username:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"Email '{user_data.email}' already exists"
-                )
-            update_data["email"] = user_data.email
-        
-        if user_data.first_name is not None:
-            update_data["first_name"] = user_data.first_name
-        
-        if user_data.last_name is not None:
-            update_data["last_name"] = user_data.last_name
-        
-        if user_data.is_active is not None:
-            update_data["is_active"] = user_data.is_active
-        
-        # Update user
-        if update_data:
-            success = user_repo.update(user.username, update_data)
-            if not success:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to update user"
-                )
-        
-        # Return updated user
-        updated_user = user_repo.get_by_id(user_id)
-        return updated_user.to_response()
+        return user.to_response()
         
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update user: {str(e)}"
-        ) from e
-
-
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: str):
-    """
-    Delete a user.
-    
-    Args:
-        user_id: User's MongoDB ObjectId
-        
-    Raises:
-        HTTPException: If user not found or deletion fails
-    """
-    try:
-        user_repo = UserRepository()
-        
-        # Check if user exists
-        user = user_repo.get_by_id(user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with ID '{user_id}' not found"
-            )
-        
-        # Delete user
-        success = user_repo.delete(user.username)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete user"
-            )
-        
-        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete user: {str(e)}"
-        ) from e
-
-
-@router.patch("/{user_id}/status", response_model=UserResponseSchema)
-async def change_user_status(user_id: str, is_active: bool):
-    """
-    Change a user's active status.
-    
-    Args:
-        user_id: User's MongoDB ObjectId
-        is_active: New active status
-        
-    Returns:
-        Updated user information
-        
-    Raises:
-        HTTPException: If user not found or update fails
-    """
-    try:
-        user_repo = UserRepository()
-        
-        # Check if user exists
-        user = user_repo.get_by_id(user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with ID '{user_id}' not found"
-            )
-        
-        # Update status
-        success = user_repo.change_status(user.username, is_active)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to change user status"
-            )
-        
-        # Return updated user
-        updated_user = user_repo.get_by_id(user_id)
-        return updated_user.to_response()
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to change user status: {str(e)}"
+            detail=f"Failed to retrieve user: {str(e)}"
         ) from e
