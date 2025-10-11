@@ -1,9 +1,11 @@
 """
 Unit tests for Task model.
 """
-import pytest
 from datetime import datetime
-from src.model.task import Task, Label
+
+import pytest
+
+from src.model.task import Task, Label, TaskMgmtDetails
 
 
 def test_label_creation():
@@ -24,21 +26,22 @@ def test_label_default_color():
 
 def test_task_creation():
     """Test creating a valid task."""
+    task_mgmt = TaskMgmtDetails(priority=8)
     task = Task(
         user_id="user123",
         title="Complete project",
         description="Finish the task management system",
-        priority=8,
-        status="open"
+        task_mgmt=task_mgmt,
+        status="Created"
     )
     
     assert task.user_id == "user123"
     assert task.title == "Complete project"
     assert task.description == "Finish the task management system"
-    assert task.priority == 8
-    assert task.status == "open"
-    assert isinstance(task.created_at, datetime)
-    assert isinstance(task.updated_at, datetime)
+    assert task.task_mgmt.priority == 8
+    assert task.status == "Created"
+    assert isinstance(task.createdate, datetime)
+    assert isinstance(task.lastmoddate, datetime)
 
 
 def test_task_validation_missing_user_id():
@@ -62,11 +65,7 @@ def test_task_validation_missing_title():
 def test_task_validation_invalid_priority():
     """Test task validation fails with invalid priority."""
     with pytest.raises(ValueError, match="Priority must be an integer between 1 and 10"):
-        Task(
-            user_id="user123",
-            title="Test Task",
-            priority=15
-        )
+        TaskMgmtDetails(priority=15)
 
 
 def test_task_validation_invalid_status():
@@ -82,11 +81,7 @@ def test_task_validation_invalid_status():
 def test_task_validation_invalid_time_unit():
     """Test task validation fails with invalid time unit."""
     with pytest.raises(ValueError, match="Time unit must be one of"):
-        Task(
-            user_id="user123",
-            title="Test Task",
-            time_unit="years"
-        )
+        TaskMgmtDetails(time_unit="invalid_unit")
 
 
 def test_task_with_labels():
@@ -107,28 +102,34 @@ def test_task_with_labels():
     assert task.labels[1].name == "Urgent"
 
 
-def test_task_with_dependencies():
-    """Test creating task with dependencies."""
-    dependencies = ["task_id_1", "task_id_2"]
+def test_task_with_task_mgmt():
+    """Test creating task with task management details."""
+    due_date = datetime(2025, 12, 31)
+    task_mgmt = TaskMgmtDetails(
+        priority=5,
+        duedate=due_date,
+        estimated_time_to_complete=2.5
+    )
     
     task = Task(
         user_id="user123",
-        title="Dependent Task",
-        dependencies=dependencies
+        title="Task with Management",
+        task_mgmt=task_mgmt
     )
     
-    assert len(task.dependencies) == 2
-    assert "task_id_1" in task.dependencies
-    assert "task_id_2" in task.dependencies
+    assert task.task_mgmt.priority == 5
+    assert task.task_mgmt.duedate == due_date
+    assert abs(task.task_mgmt.estimated_time_to_complete - 2.5) < 0.001
 
 
 def test_task_to_dict():
     """Test converting task to dictionary."""
+    task_mgmt = TaskMgmtDetails(priority=5)
     task = Task(
         user_id="user123",
         title="Test Task",
         description="Test description",
-        priority=5
+        task_mgmt=task_mgmt
     )
     
     task_dict = task.to_dict()
@@ -136,10 +137,12 @@ def test_task_to_dict():
     assert task_dict["user_id"] == "user123"
     assert task_dict["title"] == "Test Task"
     assert task_dict["description"] == "Test description"
-    assert task_dict["priority"] == 5
-    assert task_dict["status"] == "open"
-    assert "created_at" in task_dict
-    assert "updated_at" in task_dict
+    assert task_dict["task_mgmt"] is not None
+    assert task_dict["status"] == "Created"
+    assert "createdate" in task_dict
+    assert "lastmoddate" in task_dict
+    # Verify priority through the task object
+    assert task.task_mgmt.priority == 5
 
 
 def test_task_from_dict():
@@ -148,52 +151,66 @@ def test_task_from_dict():
         "user_id": "user456",
         "title": "Another Task",
         "description": "Task from dict",
-        "priority": 7,
-        "status": "inprocess",
+        "task_mgmt": {
+            "priority": 7,
+            "duedate": None,
+            "time_unit": "hours",
+            "estimated_time_to_complete": None,
+            "notify_time": 0,
+            "notify_time_units": "hours",
+            "notification_wanted": "N",
+            "time_mgmt": []
+        },
+        "status": "InProcess",
         "labels": [
             {"name": "Personal", "color": "#3498db"}
         ],
-        "dependencies": ["task_xyz"]
+        "task_history": []
     }
     
     task = Task.from_dict(task_data)
     
     assert task.user_id == "user456"
     assert task.title == "Another Task"
-    assert task.priority == 7
-    assert task.status == "inprocess"
+    assert task.task_mgmt.priority == 7
+    assert task.status == "InProcess"
     assert len(task.labels) == 1
     assert task.labels[0].name == "Personal"
-    assert len(task.dependencies) == 1
 
 
 def test_task_str_representation():
     """Test string representation of task."""
+    task_mgmt = TaskMgmtDetails(priority=8)
     task = Task(
         user_id="user123",
         title="Test Task",
-        priority=8,
-        status="open"
+        task_mgmt=task_mgmt,
+        status="Created"
     )
     
     task_str = str(task)
     assert "Test Task" in task_str
     assert "P8" in task_str
-    assert "open" in task_str
+    assert "Created" in task_str
 
 
 def test_task_optional_fields():
     """Test task with optional fields."""
     due_date = datetime(2025, 12, 31)
     
+    task_mgmt = TaskMgmtDetails(
+        priority=3,
+        duedate=due_date,
+        estimated_time_to_complete=5.5,
+        notify_time=24.0
+    )
+    
     task = Task(
         user_id="user123",
         title="Task with Options",
-        due_date=due_date,
-        estimated_time=5.5,
-        notification_when=24.0
+        task_mgmt=task_mgmt
     )
     
-    assert task.due_date == due_date
-    assert abs(task.estimated_time - 5.5) < 0.001
-    assert abs(task.notification_when - 24.0) < 0.001
+    assert task.task_mgmt.duedate == due_date
+    assert abs(task.task_mgmt.estimated_time_to_complete - 5.5) < 0.001
+    assert abs(task.task_mgmt.notify_time - 24.0) < 0.001
