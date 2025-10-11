@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 
-def Setup():
+def setup():
     """
     Load and validate environment variables for the application.
     
@@ -21,7 +21,7 @@ def Setup():
 
     # Exit if the project_db_url environment variable is not set
     if not MONGO_URI:
-        raise Exception("project_db_url environment variable is not set.")
+        raise ValueError("project_db_url environment variable is not set.")
 
     # Get database name from environment variable or extract from URI
     DB_NAME = os.getenv('DATABASE_NAME')
