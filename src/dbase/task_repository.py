@@ -92,7 +92,7 @@ class TaskRepository:
             query = filters or {}
             tasks_data = self.collection.find(query).sort("created_at", -1)
             return [Task.from_dict(task_data) for task_data in tasks_data]
-        except Exception as e:
+        except PyMongoError as e:
             print(f"Error retrieving all tasks: {e}")
             return []
     

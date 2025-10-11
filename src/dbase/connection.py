@@ -78,7 +78,7 @@ class DatabaseConnection:
         Returns:
             Database: MongoDB database instance
         """
-        if self._database is None and not os.getenv('MOCK_MODE', 'false').lower() == 'true':
+        if self._database is None and os.getenv('MOCK_MODE', 'false').lower() != 'true':
             self._connect()
         return self._database
     

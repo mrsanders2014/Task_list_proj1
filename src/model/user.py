@@ -45,7 +45,7 @@ class User:
             data["last_login"] = self.last_login
             
         if self._id:
-            data["_id"] = self._id
+            data["_id"] = str(self._id)
             
         return data
     

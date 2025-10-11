@@ -10,8 +10,7 @@ from src.dbase.user_repository import UserRepository
 from src.api.schemas import (
     UserCreateSchema, 
     UserUpdateSchema, 
-    UserResponseSchema,
-    ErrorResponseSchema
+    UserResponseSchema
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -67,12 +66,12 @@ async def create_user(user_data: UserCreateSchema):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create user: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/", response_model=List[UserResponseSchema])
@@ -95,7 +94,7 @@ async def get_users(is_active: Optional[bool] = Query(None, description="Filter 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve users: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/{user_id}", response_model=UserResponseSchema)
@@ -130,7 +129,7 @@ async def get_user(user_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve user: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/username/{username}", response_model=UserResponseSchema)
@@ -165,7 +164,7 @@ async def get_user_by_username(username: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve user: {str(e)}"
-        )
+        ) from e
 
 
 @router.put("/{user_id}", response_model=UserResponseSchema)
@@ -199,7 +198,7 @@ async def update_user(user_id: str, user_data: UserUpdateSchema):
         if user_data.email is not None:
             # Check if email is already taken by another user
             existing_email = user_repo.get_by_email(user_data.email)
-            if existing_email and existing_email._id != user._id:
+            if existing_email and existing_email.username != user.username:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"Email '{user_data.email}' already exists"
@@ -234,7 +233,7 @@ async def update_user(user_id: str, user_data: UserUpdateSchema):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update user: {str(e)}"
-        )
+        ) from e
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -275,7 +274,7 @@ async def delete_user(user_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete user: {str(e)}"
-        )
+        ) from e
 
 
 @router.patch("/{user_id}/status", response_model=UserResponseSchema)
@@ -322,4 +321,4 @@ async def change_user_status(user_id: str, is_active: bool):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to change user status: {str(e)}"
-        )
+        ) from e

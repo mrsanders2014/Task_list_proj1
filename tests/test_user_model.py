@@ -1,8 +1,8 @@
 """
 Unit tests for User model.
 """
-import pytest
 from datetime import datetime
+
 from src.model.user import User
 
 

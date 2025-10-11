@@ -13,8 +13,7 @@ from src.api.schemas import (
     TaskUpdateSchema,
     TaskResponseSchema,
     TaskStatusUpdateSchema,
-    TaskStatisticsSchema,
-    ErrorResponseSchema
+    TaskStatisticsSchema
 )
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -90,28 +89,29 @@ async def create_task(task_data: TaskCreateSchema, user_id: str = Query(..., des
         
         task_repo = TaskRepository()
         task_id = task_repo.create(task)
-        task._id = task_id
         
-        return _convert_task_to_response(task)
+        # Get the created task with ID
+        created_task = task_repo.get_by_id(task_id)
+        return _convert_task_to_response(created_task)
         
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
+        ) from e
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create task: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/", response_model=List[TaskResponseSchema])
 async def get_tasks(
     user_id: Optional[str] = Query(None, description="Filter by user ID"),
-    status: Optional[str] = Query(None, description="Filter by task status"),
+    task_status: Optional[str] = Query(None, description="Filter by task status"),
     min_priority: Optional[int] = Query(None, ge=1, le=10, description="Minimum priority"),
     max_priority: Optional[int] = Query(None, ge=1, le=10, description="Maximum priority"),
     label_name: Optional[str] = Query(None, description="Filter by label name"),
@@ -122,7 +122,7 @@ async def get_tasks(
     
     Args:
         user_id: Filter by user ID
-        status: Filter by task status
+        task_status: Filter by task status
         min_priority: Minimum priority level
         max_priority: Maximum priority level
         label_name: Filter by label name
@@ -144,7 +144,7 @@ async def get_tasks(
         elif label_name:
             tasks = task_repo.get_by_label(user_id, label_name)
         else:
-            tasks = task_repo.get_by_user(user_id, status=status)
+            tasks = task_repo.get_by_user(user_id, status=task_status)
         
         return [_convert_task_to_response(task) for task in tasks]
         
@@ -152,7 +152,7 @@ async def get_tasks(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve tasks: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/{task_id}", response_model=TaskResponseSchema)
@@ -187,7 +187,7 @@ async def get_task(task_id: str = Path(..., description="Task ID")):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve task: {str(e)}"
-        )
+        ) from e
 
 
 @router.put("/{task_id}", response_model=TaskResponseSchema)
@@ -263,7 +263,7 @@ async def update_task(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update task: {str(e)}"
-        )
+        ) from e
 
 
 @router.patch("/{task_id}/status", response_model=TaskResponseSchema)
@@ -313,7 +313,7 @@ async def update_task_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update task status: {str(e)}"
-        )
+        ) from e
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -364,7 +364,7 @@ async def delete_task(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete task: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/user/{user_id}/statistics", response_model=TaskStatisticsSchema)
@@ -402,4 +402,4 @@ async def get_task_statistics(user_id: str = Path(..., description="User ID")):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve task statistics: {str(e)}"
-        )
+        ) from e
