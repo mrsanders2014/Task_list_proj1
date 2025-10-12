@@ -3,7 +3,7 @@ Pydantic schemas for API request/response models.
 """
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field, EmailStr, validator
+from pydantic import BaseModel, Field, EmailStr
 
 
 class LabelSchema(BaseModel):
@@ -30,6 +30,9 @@ class TaskCreateSchema(BaseModel):
     labels: Optional[List[LabelSchema]] = None
     task_mgmt: Optional[TaskMgmtDetailsSchema] = None
     status: str = Field(default="Created", pattern="^(Created|Started|InProcess|Modified|Scheduled|Complete|Deleted)$")
+    priority: Optional[int] = Field(None, ge=1, le=10)
+    due_date: Optional[datetime] = None
+    estimated_time: Optional[float] = Field(None, ge=0)
 
 
 class TaskUpdateSchema(BaseModel):
@@ -59,8 +62,9 @@ class TaskResponseSchema(BaseModel):
 
 class UserCreateSchema(BaseModel):
     """Schema for creating a new user."""
-    username: str = Field(..., min_length=1, max_length=50)
+    username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
+    password: str = Field(..., min_length=6)
     first_name: Optional[str] = Field(None, max_length=50)
     last_name: Optional[str] = Field(None, max_length=50)
 
@@ -113,3 +117,33 @@ class ErrorResponseSchema(BaseModel):
     """Schema for error responses."""
     detail: str
     error_code: Optional[str] = None
+
+
+# JWT Authentication Schemas
+class TokenData(BaseModel):
+    """Schema for JWT token data."""
+    username: str
+    user_id: Optional[str] = None
+    type: Optional[str] = None
+    version: Optional[int] = None
+
+
+class Token(BaseModel):
+    """Schema for JWT token response."""
+    access_token: str
+    token_type: str
+
+
+class UserLoginSchema(BaseModel):
+    """Schema for user login."""
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=6)
+
+
+class UserRegisterSchema(BaseModel):
+    """Schema for user registration."""
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    first_name: Optional[str] = Field(None, max_length=50)
+    last_name: Optional[str] = Field(None, max_length=50)

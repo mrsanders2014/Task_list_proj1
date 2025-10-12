@@ -4,7 +4,7 @@ Defines the Task document structure using Beanie ODM.
 """
 # pylint: disable=no-member
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional, List, ClassVar
 from beanie import Document, Link
 from pydantic import Field, validator, BaseModel
 from pymongo import IndexModel
@@ -36,7 +36,7 @@ class TaskTimeMgmt(BaseModel):
 class TaskMgmtDetails(BaseModel):
     """Task management details including priority, deadlines, and notifications."""
     
-    VALID_TIME_UNITS = ["minutes", "hours", "days", "weeks", "months", "years"]
+    VALID_TIME_UNITS: ClassVar[List[str]] = ["minutes", "hours", "days", "weeks", "months", "years"]
     
     priority: int = Field(default=1, ge=1, le=10)
     duedate: Optional[datetime] = Field(None)
@@ -93,7 +93,7 @@ class TaskHistoryEntry(BaseModel):
 class BeanieTask(Document):
     """Task document model using Beanie ODM."""
     
-    VALID_STATUSES = ["Created", "Started", "InProcess", "Modified", "Scheduled", "Complete", "Deleted"]
+    VALID_STATUSES: ClassVar[List[str]] = ["Created", "Started", "InProcess", "Modified", "Scheduled", "Complete", "Deleted"]
     
     # Required fields
     user: Link[BeanieUser] = Field(..., description="User who owns this task")

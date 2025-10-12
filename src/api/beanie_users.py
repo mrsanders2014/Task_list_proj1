@@ -2,7 +2,7 @@
 Beanie User API endpoints for FastAPI application.
 """
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 
 from src.models.beanie_user import BeanieUser
 from src.api.schemas import (
@@ -10,6 +10,7 @@ from src.api.schemas import (
     UserUpdateSchema, 
     UserResponseSchema
 )
+from src.bus_rules.auth import get_password_hash, get_current_user, TokenData
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -45,10 +46,14 @@ async def create_user(user_data: UserCreateSchema):
                 detail=f"Email '{user_data.email}' already exists"
             )
         
+        # Hash the password
+        hashed_password = get_password_hash(user_data.password)
+        
         # Create new user
         user = BeanieUser(
             username=user_data.username,
             email=user_data.email,
+            password_hash=hashed_password,
             first_name=user_data.first_name,
             last_name=user_data.last_name
         )
@@ -76,7 +81,8 @@ async def create_user(user_data: UserCreateSchema):
 async def get_users(
     skip: int = Query(0, ge=0, description="Number of users to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of users to return"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status")
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    _current_user: TokenData = Depends(get_current_user)
 ):
     """
     Retrieve all users with optional filtering and pagination.
@@ -111,7 +117,7 @@ async def get_users(
 
 
 @router.get("/{user_id}", response_model=UserResponseSchema)
-async def get_user(user_id: str):
+async def get_user(user_id: str, current_user: TokenData = Depends(get_current_user)):
     """
     Retrieve a specific user by ID.
     
@@ -144,7 +150,7 @@ async def get_user(user_id: str):
 
 
 @router.put("/{user_id}", response_model=UserResponseSchema)
-async def update_user(user_id: str, user_data: UserUpdateSchema):
+async def update_user(user_id: str, user_data: UserUpdateSchema, current_user: TokenData = Depends(get_current_user)):
     """
     Update an existing user.
     
@@ -214,7 +220,7 @@ async def update_user(user_id: str, user_data: UserUpdateSchema):
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: str):
+async def delete_user(user_id: str, current_user: TokenData = Depends(get_current_user)):
     """
     Delete a user.
     
@@ -244,7 +250,7 @@ async def delete_user(user_id: str):
 
 
 @router.patch("/{user_id}/status", response_model=UserResponseSchema)
-async def change_user_status(user_id: str, is_active: bool):
+async def change_user_status(user_id: str, is_active: bool, current_user: TokenData = Depends(get_current_user)):
     """
     Change user active status.
     

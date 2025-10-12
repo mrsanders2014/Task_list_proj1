@@ -9,8 +9,10 @@ dependencies = [
     "email-validator>=2.0.0",
     "fastapi>=0.118.2",
     "motor[sdam]>=3.7.1",
+    "passlib[bcrypt]>=1.7.4",
     "pymongo>=4.15.2",
     "python-dotenv>=1.1.1",
+    "python-jose>=3.5.0",
     "uvicorn>=0.37.0",
 ]
 

@@ -4,7 +4,7 @@ Beanie Task API endpoints for FastAPI application.
 # pylint: disable=no-member
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 
 from src.models.beanie_task import BeanieTask, Label, TaskMgmtDetails
 from src.models.beanie_user import BeanieUser
@@ -15,12 +15,13 @@ from src.api.schemas import (
     TaskStatusUpdateSchema,
     TaskStatisticsSchema
 )
+from src.bus_rules.auth import get_current_user, TokenData
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 @router.post("/", response_model=TaskResponseSchema, status_code=status.HTTP_201_CREATED)
-async def create_task(task_data: TaskCreateSchema):
+async def create_task(task_data: TaskCreateSchema, current_user: TokenData = Depends(get_current_user)):
     """
     Create a new task.
     
@@ -34,12 +35,12 @@ async def create_task(task_data: TaskCreateSchema):
         HTTPException: If task creation fails or user not found
     """
     try:
-        # Verify user exists
-        user = await BeanieUser.get(task_data.user_id)
+        # Get the authenticated user
+        user = await BeanieUser.find_one(BeanieUser.username == current_user.username)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with ID '{task_data.user_id}' not found"
+                detail="Authenticated user not found"
             )
         
         # Create task management details if provided
@@ -95,7 +96,8 @@ async def get_tasks(
     label_name: Optional[str] = Query(None, description="Filter by label name"),
     overdue_only: bool = Query(False, description="Show only overdue tasks"),
     skip: int = Query(0, ge=0, description="Number of tasks to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of tasks to return")
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of tasks to return"),
+    _current_user: TokenData = Depends(get_current_user)
 ):
     """
     Retrieve tasks with optional filtering and pagination.
@@ -157,7 +159,7 @@ async def get_tasks(
 
 
 @router.get("/{task_id}", response_model=TaskResponseSchema)
-async def get_task(task_id: str):
+async def get_task(task_id: str, current_user: TokenData = Depends(get_current_user)):
     """
     Retrieve a specific task by ID.
     
@@ -190,7 +192,7 @@ async def get_task(task_id: str):
 
 
 @router.put("/{task_id}", response_model=TaskResponseSchema)
-async def update_task(task_id: str, task_data: TaskUpdateSchema):
+async def update_task(task_id: str, task_data: TaskUpdateSchema, current_user: TokenData = Depends(get_current_user)):
     """
     Update an existing task.
     
@@ -261,7 +263,7 @@ async def update_task(task_id: str, task_data: TaskUpdateSchema):
 
 
 @router.patch("/{task_id}/status", response_model=TaskResponseSchema)
-async def update_task_status(task_id: str, status_data: TaskStatusUpdateSchema):
+async def update_task_status(task_id: str, status_data: TaskStatusUpdateSchema, current_user: TokenData = Depends(get_current_user)):
     """
     Update task status.
     
@@ -306,7 +308,7 @@ async def update_task_status(task_id: str, status_data: TaskStatusUpdateSchema):
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_task(task_id: str):
+async def delete_task(task_id: str, current_user: TokenData = Depends(get_current_user)):
     """
     Delete a task.
     
@@ -339,6 +341,7 @@ async def delete_task(task_id: str):
 async def get_user_tasks(
     user_id: str,
     task_status: Optional[str] = Query(None, description="Filter by task status"),
+    _current_user: TokenData = Depends(get_current_user),
     skip: int = Query(0, ge=0, description="Number of tasks to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of tasks to return")
 ):
@@ -386,7 +389,7 @@ async def get_user_tasks(
 
 
 @router.get("/statistics/overview", response_model=TaskStatisticsSchema)
-async def get_task_statistics():
+async def get_task_statistics(current_user: TokenData = Depends(get_current_user)):
     """
     Get task statistics overview.
     

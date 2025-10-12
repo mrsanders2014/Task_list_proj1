@@ -4,6 +4,7 @@ A MongoDB-based task management system with RESTful API built using FastAPI and 
 
 ## Features
 
+- **JWT Authentication**: Secure token-based authentication with password hashing
 - **User Management**: Complete CRUD operations for users with Beanie ODM
 - **Task Management**: Full CRUD operations with advanced filtering and relationships
 - **Task Statistics**: Comprehensive statistics and analytics
@@ -13,6 +14,7 @@ A MongoDB-based task management system with RESTful API built using FastAPI and 
 - **RESTful API**: Modern HTTP API with automatic documentation
 - **Data Validation**: Comprehensive input validation and error handling
 - **Async Operations**: Full async/await support with Beanie ODM
+- **Security Middleware**: JWT authentication middleware with request logging
 
 ## Quick Start
 
@@ -24,12 +26,15 @@ uv sync
 
 ### Configuration
 
-Create a `.env` file with your MongoDB connection string:
+Create a `.env` file with your MongoDB connection string and JWT configuration:
 
 ```
 project_db_url=mongodb://localhost:27017
 DATABASE_NAME=task_manager
 MOCK_MODE=false
+JWT_SECRET_KEY=your-super-secure-secret-key-here-32-chars-min
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 **Note**: The application now uses Beanie ODM for MongoDB operations, providing better type safety and async support.
@@ -49,7 +54,15 @@ The API will be available at `http://localhost:8000`
 
 ## API Endpoints
 
-### Users
+### Authentication
+
+- `POST /auth/register` - Register a new user
+- `POST /auth/login` - Login and get JWT token
+- `POST /auth/login-form` - Login using OAuth2 form (for Swagger UI)
+- `GET /auth/me` - Get current user information
+- `POST /auth/refresh` - Refresh JWT token
+
+### Users (Protected - Requires JWT)
 
 - `POST /users/` - Create a new user
 - `GET /users/` - Get all users (with optional filters)
@@ -59,7 +72,7 @@ The API will be available at `http://localhost:8000`
 - `DELETE /users/{user_id}` - Delete a user
 - `PATCH /users/{user_id}/status` - Change user active status
 
-### Tasks
+### Tasks (Protected - Requires JWT)
 
 - `POST /tasks/` - Create a new task
 - `GET /tasks/` - Get tasks (with optional filters)
@@ -79,26 +92,38 @@ The API will be available at `http://localhost:8000`
 
 ## Example Usage
 
-### Create a User
+### Register a User
 
 ```bash
-curl -X POST "http://localhost:8000/users/" \
+curl -X POST "http://localhost:8000/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "john_doe",
     "email": "john@example.com",
+    "password": "securepassword123",
     "first_name": "John",
     "last_name": "Doe"
   }'
 ```
 
-### Create a Task
+### Login and Get JWT Token
+
+```bash
+curl -X POST "http://localhost:8000/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_doe",
+    "password": "securepassword123"
+  }'
+```
+
+### Create a Task (with JWT token)
 
 ```bash
 curl -X POST "http://localhost:8000/tasks/" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
-    "user_id": "USER_ID",
     "title": "Complete project documentation",
     "description": "Write comprehensive API documentation",
     "status": "Created",
@@ -107,14 +132,26 @@ curl -X POST "http://localhost:8000/tasks/" \
   }'
 ```
 
+### Get Current User Info
+
+```bash
+curl -X GET "http://localhost:8000/auth/me" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
 
 ## Project Structure
 
 - `main.py` - Main FastAPI application entry point
 - `src/api/` - FastAPI API endpoints
+  - `auth.py` - JWT authentication endpoints
   - `beanie_users.py` - User API endpoints (Beanie ODM)
   - `beanie_tasks.py` - Task API endpoints (Beanie ODM)
   - `schemas.py` - Pydantic schemas for validation
+- `src/bus_rules/` - Business logic and middleware
+  - `auth.py` - JWT authentication utilities
+  - `middleware.py` - JWT authentication middleware
+  - `dependency.py` - Dependency injection
 - `src/models/` - Beanie ODM document models
   - `beanie_user.py` - User document model
   - `beanie_task.py` - Task document model

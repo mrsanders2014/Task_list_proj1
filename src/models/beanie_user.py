@@ -15,6 +15,7 @@ class BeanieUser(Document):
     # Required fields
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr = Field(..., description="User's email address")
+    password_hash: str = Field(..., min_length=6, description="Hashed password")
     
     # Optional fields
     first_name: Optional[str] = Field(None, max_length=50)

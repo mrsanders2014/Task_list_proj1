@@ -9,8 +9,10 @@ import uvicorn
 
 from src.api.beanie_users import router as beanie_users_router
 from src.api.beanie_tasks import router as beanie_tasks_router
+from src.api.auth import router as auth_router
 from src.settings import setup
 from src.dbase.beanie_init import initialize_beanie, close_beanie
+from src.bus_rules.middleware import JWTAuthMiddleware, RequestLoggingMiddleware, CORSSecurityMiddleware
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -20,6 +22,11 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Add middleware (order matters - first added is outermost)
+app.add_middleware(CORSSecurityMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(JWTAuthMiddleware, protected_paths=["/users", "/tasks"])
 
 # Add CORS middleware
 app.add_middleware(
@@ -31,6 +38,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth_router)
 app.include_router(beanie_users_router)
 app.include_router(beanie_tasks_router)
 
@@ -74,6 +82,7 @@ async def root():
         "docs": "/docs",
         "redoc": "/redoc",
         "endpoints": {
+            "auth": "/auth",
             "users": "/users",
             "tasks": "/tasks"
         }
