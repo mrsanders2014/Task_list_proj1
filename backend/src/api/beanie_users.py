@@ -4,13 +4,13 @@ Beanie User API endpoints for FastAPI application.
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Query, Depends
 
-from src.models.beanie_user import BeanieUser
-from src.api.schemas import (
+from backend.src.models.beanie_user import BeanieUser
+from backend.src.api.schemas import (
     UserCreateSchema, 
     UserUpdateSchema, 
     UserResponseSchema
 )
-from src.bus_rules.auth import get_password_hash, get_current_user, TokenData
+from backend.src.bus_rules.auth import get_password_hash, get_current_user, TokenData
 
 router = APIRouter(prefix="/users", tags=["users"])
 

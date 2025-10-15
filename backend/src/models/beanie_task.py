@@ -9,7 +9,7 @@ from beanie import Document, Link
 from pydantic import Field, validator, BaseModel
 from pymongo import IndexModel
 
-from src.models.beanie_user import BeanieUser
+from backend.src.models.beanie_user import BeanieUser
 
 
 class Label(BaseModel):

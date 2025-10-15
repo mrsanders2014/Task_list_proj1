@@ -5,7 +5,7 @@ from datetime import datetime
 
 import pytest
 
-from src.models.beanie_user import BeanieUser
+from backend.src.models.beanie_user import BeanieUser
 
 
 def test_beanie_user_creation():

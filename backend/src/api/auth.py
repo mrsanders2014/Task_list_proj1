@@ -5,14 +5,14 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
-from src.models.beanie_user import BeanieUser
-from src.api.schemas import (
+from backend.src.models.beanie_user import BeanieUser
+from backend.src.api.schemas import (
     UserLoginSchema,
     UserRegisterSchema,
     Token,
     UserResponseSchema
 )
-from src.bus_rules.auth import (
+from backend.src.bus_rules.auth import (
     authenticate_user,
     create_access_token,
     get_password_hash,

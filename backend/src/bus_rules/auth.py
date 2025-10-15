@@ -11,7 +11,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 
-from src.api.schemas import TokenData
+from backend.src.api.schemas import TokenData
 
 # Load environment variables
 load_dotenv()

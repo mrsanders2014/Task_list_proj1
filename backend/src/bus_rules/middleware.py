@@ -10,7 +10,7 @@ from starlette.types import ASGIApp
 import time
 import logging
 
-from src.bus_rules.auth import verify_token
+from backend.src.bus_rules.auth import verify_token
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

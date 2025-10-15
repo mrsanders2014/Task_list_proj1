@@ -6,8 +6,8 @@ from datetime import datetime
 
 import pytest
 
-from src.models.beanie_task import BeanieTask, Label, TaskMgmtDetails, TaskHistoryEntry
-from src.models.beanie_user import BeanieUser
+from backend.src.models.beanie_task import BeanieTask, Label, TaskMgmtDetails, TaskHistoryEntry
+from backend.src.models.beanie_user import BeanieUser
 
 
 def test_label_creation():

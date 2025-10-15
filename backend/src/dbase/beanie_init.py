@@ -8,7 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from dotenv import load_dotenv
 
-from src.models import BeanieUser, BeanieTask
+from backend.src.models import BeanieUser, BeanieTask
 
 
 class BeanieDatabase:

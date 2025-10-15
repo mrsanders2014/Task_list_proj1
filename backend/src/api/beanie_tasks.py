@@ -6,16 +6,16 @@ from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, status, Query, Depends
 
-from src.models.beanie_task import BeanieTask, Label, TaskMgmtDetails
-from src.models.beanie_user import BeanieUser
-from src.api.schemas import (
+from backend.src.models.beanie_task import BeanieTask, Label, TaskMgmtDetails
+from backend.src.models.beanie_user import BeanieUser
+from backend.src.api.schemas import (
     TaskCreateSchema,
     TaskUpdateSchema,
     TaskResponseSchema,
     TaskStatusUpdateSchema,
     TaskStatisticsSchema
 )
-from src.bus_rules.auth import get_current_user, TokenData
+from backend.src.bus_rules.auth import get_current_user, TokenData
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 

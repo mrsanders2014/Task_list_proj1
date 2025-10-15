@@ -7,12 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from src.api.beanie_users import router as beanie_users_router
-from src.api.beanie_tasks import router as beanie_tasks_router
-from src.api.auth import router as auth_router
-from src.settings import setup
-from src.dbase.beanie_init import initialize_beanie, close_beanie
-from src.bus_rules.middleware import JWTAuthMiddleware, RequestLoggingMiddleware, CORSSecurityMiddleware
+from backend.src.api.beanie_users import router as beanie_users_router
+from backend.src.api.beanie_tasks import router as beanie_tasks_router
+from backend.src.api.auth import router as auth_router
+from backend.src.settings import setup
+from backend.src.dbase.beanie_init import initialize_beanie, close_beanie
+from backend.src.bus_rules.middleware import JWTAuthMiddleware, RequestLoggingMiddleware, CORSSecurityMiddleware
 
 # Initialize FastAPI app
 app = FastAPI(

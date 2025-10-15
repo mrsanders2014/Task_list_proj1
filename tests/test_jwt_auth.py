@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 
 from main import app
-from src.bus_rules.auth import create_access_token, verify_token, get_password_hash
-from src.api.schemas import TokenData
+from backend.src.bus_rules.auth import create_access_token, verify_token, get_password_hash
+from backend.src.api.schemas import TokenData
 
 client = TestClient(app)
 
