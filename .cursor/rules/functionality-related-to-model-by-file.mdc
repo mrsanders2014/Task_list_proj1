@@ -1,3 +1,6 @@
+---
+alwaysApply: true
+---
 # Rule: Enforce Layered Architecture Naming Conventions
 
 ## Applies To
