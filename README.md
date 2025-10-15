@@ -1,274 +1,254 @@
-# **Task_list_proj1**
-### Author: Michael Sanders 
+# Task Manager FastAPI Application
 
-## **Project Overview**
-This project is a Python CLI-based Task Management application with MongoDB integration. It provides comprehensive CRUD operations for managing users and tasks, featuring user authentication, task categorization with labels, priority management, dependency tracking, and rich CLI interface powered by the Rich library.
+A MongoDB-based task management system with RESTful API built using FastAPI and Beanie ODM.
 
-## Included Features: 
+## Features
 
+- **JWT Authentication**: Secure token-based authentication with password hashing
+- **User Management**: Complete CRUD operations for users with Beanie ODM
+- **Task Management**: Full CRUD operations with advanced filtering and relationships
+- **Task Statistics**: Comprehensive statistics and analytics
+- **Status Management**: Track task status changes with history
+- **Priority & Label Support**: Organize tasks with priorities and labels
+- **Due Date Management**: Set due dates and track overdue tasks
+- **RESTful API**: Modern HTTP API with automatic documentation
+- **Data Validation**: Comprehensive input validation and error handling
+- **Async Operations**: Full async/await support with Beanie ODM
+- **Security Middleware**: JWT authentication middleware with request logging
 
-### User Management
-    
-    Account creation by a user designed to create/manage task lists.
-    Login capability so that a user profile and tasks can be managed (including deletion)
-    Ensure proper 'logout' capability to ensure security of users data.
+## Quick Start
 
-### Task Management
-    Be able create a new task, be able to assign priority, start/stop date and predecessor task
-    Be able to view all existing tasks in various sort form
-    Be able to update an existing task on every field with certain exceptions
-    Be able to delete a task
+### Installation
 
-### Labeling System
-    Be able tocreate and manage labels (e.g., 'Work,' 'Personal,' 'Urgent'), so I can categorize and/or prioritize my tasks.
-    Be able to assign one or more labels to a task, so I can easily filter and organize my tasks.
-
-### Required Task Fields: Every task must include a 
-- title 
-- optional description 
-- priority level (e.g., High, Medium, Low)
-- task color
-- deadline (due-date)
-- time unit for task
-- task status
-- can task be done in parallel with other tasks?
-- if so, list of parallel tasks
-- predecessor task
-
-
-### Data Persistence
-    The application must persist all user, task, and label data in a MongoDB database.
-
-### Possible Goals as of 10/1/25
-
-    As a user, I want to filter my tasks by label, so I can quickly find and organize what I need to work on.
-    As a user, I want to be able to edit my profile details, so I can keep my information up to date.
-    As a user, I want the application to be responsive and work well on different screen sizes, so I can access my tasks from any device, including my phone or tablet.
-    As a user, I want to see clear, helpful messages when something goes wrong, so I know what happened and how to proceed.
-
-### Technical Requirements & File Structure
-Use best python practices for project structure
-Will include the use UV project management
-
-### Database: MongoDB
-The project should leverage a MongoDB database filled with appropriately modeled documents & collections. 
-Initial design will consist of a database with 2 collections: Users and Tasks. Tasks will be related to Users (1 user -> many tasks)
-
-### Backend: FastAPI
-The project directory will follow a modular structure based on current Python best practices. 
-
-### Frontend: Next.js
-The project structure should follow best practices for a Next.js application. 
-
-
-
-### GitHubRepository Location/URL
-   [Task_list_proj1](https://github.com/mrsanders2014/Task_list_proj1)
-
-## **Technical Build and Run Instructions**
-
-### Prerequisites
-- Python 3.12 or higher
-- MongoDB instance (local or remote)
-- UV package manager (recommended) or pip
-
-### Setup Instructions
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/mrsanders2014/Task_list_proj1.git
-   cd Task_list_proj1
-   ```
-
-2. **Create environment file:**
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` and configure your MongoDB connection:
-   ```
-   project_db_url=mongodb://localhost:27017/
-   DATABASE_NAME=task_manager
-   ```
-
-3. **Install dependencies:**
-   
-   Using UV (recommended):
-   ```bash
-   uv sync
-   ```
-   
-   Or using pip:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run the application:**
-   ```bash
-   python main.py
-   ```
-
-### MongoDB Setup
-
-Ensure MongoDB is running on your system:
-
-**Local MongoDB:**
 ```bash
-mongod
+uv sync
 ```
 
-**Or use MongoDB Atlas** (cloud-hosted) and update the `project_db_url` in `.env` accordingly.
+### Configuration
 
-### Project Structure
+Create a `.env` file with your MongoDB connection string and JWT configuration:
+
 ```
-Task_list_proj1/
-├── src/
-│   └── Task_list_proj1/
-│       ├── model/           # Data models (User, Task, Label)
-│       ├── dbase/           # Database layer (connection, repositories)
-│       ├── bus_rules/       # Business rules (future expansion)
-│       └── cli.py           # CLI interface
-├── tests/                   # Test files
-├── main.py                  # Application entry point
-├── pyproject.toml           # Project configuration
-├── .env                     # Environment variables (not in git)
-└── README.md
+project_db_url=mongodb://localhost:27017
+DATABASE_NAME=task_manager
+MOCK_MODE=false
+JWT_SECRET_KEY=your-super-secure-secret-key-here-32-chars-min
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-## **Technologies Used**
-- **Python 3.12+**: Core programming language
-- **MongoDB**: NoSQL database for data persistence
-- **PyMongo**: MongoDB driver for Python
-- **Rich**: Beautiful terminal interface library
-- **python-dotenv**: Environment variable management
-- **UV**: Modern Python package manager
+**Note**: The application now uses Beanie ODM for MongoDB operations, providing better type safety and async support.
 
-## **Implemented Features**
+### Start the API Server
 
-### User Management ✓
-- User registration with validation
-- Secure login/logout functionality
-- User profile management (view, update)
-- Password management
-- Account status control (active/inactive)
-- Last login tracking
+```bash
+uv run python main.py
+```
 
-### Task Management ✓
-- Create tasks with comprehensive attributes:
-  - Title and description
-  - Priority levels (1-10)
+The API will be available at `http://localhost:8000`
+
+### Access API Documentation
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## API Endpoints
+
+### Authentication
+
+- `POST /auth/register` - Register a new user
+- `POST /auth/login` - Login and get JWT token
+- `POST /auth/login-form` - Login using OAuth2 form (for Swagger UI)
+- `GET /auth/me` - Get current user information
+- `POST /auth/refresh` - Refresh JWT token
+
+### Users (Protected - Requires JWT)
+
+- `POST /users/` - Create a new user
+- `GET /users/` - Get all users (with optional filters)
+- `GET /users/{user_id}` - Get user by ID
+- `GET /users/username/{username}` - Get user by username
+- `PUT /users/{user_id}` - Update user information
+- `DELETE /users/{user_id}` - Delete a user
+- `PATCH /users/{user_id}/status` - Change user active status
+
+### Tasks (Protected - Requires JWT)
+
+- `POST /tasks/` - Create a new task
+- `GET /tasks/` - Get tasks (with optional filters)
+- `GET /tasks/{task_id}` - Get task by ID
+- `PUT /tasks/{task_id}` - Update task information
+- `PATCH /tasks/{task_id}/status` - Update task status
+- `DELETE /tasks/{task_id}` - Delete a task
+- `GET /tasks/user/{user_id}` - Get all tasks for a specific user
+- `GET /tasks/statistics/overview` - Get comprehensive task statistics
+
+
+### Filtering Options
+
+**Tasks:**
+- Filter by user ID, status, priority range, labels, or overdue status
+- Advanced query parameters for flexible data retrieval
+
+## Example Usage
+
+### Register a User
+
+```bash
+curl -X POST "http://localhost:8000/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password": "securepassword123",
+    "first_name": "John",
+    "last_name": "Doe"
+  }'
+```
+
+### Login and Get JWT Token
+
+```bash
+curl -X POST "http://localhost:8000/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_doe",
+    "password": "securepassword123"
+  }'
+```
+
+### Create a Task (with JWT token)
+
+```bash
+curl -X POST "http://localhost:8000/tasks/" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "title": "Complete project documentation",
+    "description": "Write comprehensive API documentation",
+    "status": "Created",
+    "priority": 3,
+    "estimated_time": 4.0
+  }'
+```
+
+### Get Current User Info
+
+```bash
+curl -X GET "http://localhost:8000/auth/me" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+
+## Project Structure
+
+- `main.py` - Main FastAPI application entry point
+- `src/api/` - FastAPI API endpoints
+  - `auth.py` - JWT authentication endpoints
+  - `beanie_users.py` - User API endpoints (Beanie ODM)
+  - `beanie_tasks.py` - Task API endpoints (Beanie ODM)
+  - `schemas.py` - Pydantic schemas for validation
+- `src/bus_rules/` - Business logic and middleware
+  - `auth.py` - JWT authentication utilities
+  - `middleware.py` - JWT authentication middleware
+  - `dependency.py` - Dependency injection
+- `src/models/` - Beanie ODM document models
+  - `beanie_user.py` - User document model
+  - `beanie_task.py` - Task document model
+- `src/dbase/` - Database connection and initialization
+  - `beanie_init.py` - Beanie ODM initialization
+- `tests/` - Unit tests
+  - `test_beanie_user.py` - User model tests
+  - `test_beanie_task.py` - Task model tests
+
+## Data Models
+
+### BeanieUser Model
+
+The BeanieUser model includes:
+
+- Basic user information (username, email, first/last name)
+- Account status and timestamps
+- Full name generation and status management
+- Unique constraints on username and email
+- Automatic timestamp management
+
+### BeanieTask Model
+
+The BeanieTask model includes:
+
+- Basic task information (title, description)
+- User relationship via Beanie Link
+- Status tracking (Created, Started, InProcess, Modified, Scheduled, Complete, Deleted)
+- Optional labels for categorization
+- Optional task management details:
+  - Priority (1-10, where 1 is highest)
   - Due dates
-  - Custom labels with colors
-  - Time estimation (with units: minutes, hours, days, weeks)
-  - Task status (open, inprocess, completed, deleted)
-  - Notification settings
-  - Task dependencies
-- View tasks with multiple filters:
-  - All tasks
-  - By status
-  - By priority range
-  - By label
-  - Overdue tasks
-- Update tasks
-- Delete tasks (soft delete and hard delete)
+  - Time estimates
+  - Notifications
+  - Time tracking history
+- Complete task history with reasons for status changes
 
-### Labeling System ✓
-- Create multiple labels per task
-- Custom label colors (hex format)
-- Filter tasks by label
-- Visual label representation in CLI
 
-### Task Dependencies ✓
-- Link tasks to other tasks
-- Create dependency lists
-- Track task relationships
+## Running Tests
 
-### Data Persistence ✓
-- MongoDB integration with proper indexing
-- Users collection with unique userid and email
-- Tasks collection with proper relationships
-- Optimized queries for filtering and sorting
-
-### Statistics & Reporting ✓
-- Task count by status
-- Overdue task tracking
-- User activity monitoring
-
-## **Usage Examples**
-
-### Registering a New User
-1. Run the application
-2. Select "Register New User"
-3. Enter your details (firstname, lastname, userid, email, password)
-4. Login with your credentials
-
-### Creating a Task
-1. Login to your account
-2. Navigate to "Task Management" → "Create New Task"
-3. Fill in task details:
-   - Title (required)
-   - Description (optional)
-   - Priority (1-10, optional)
-   - Due date (YYYY-MM-DD format, optional)
-   - Labels (multiple, with colors)
-   - Time estimation
-   - Dependencies (other task IDs)
-
-### Viewing Tasks
-- View all tasks
-- Filter by status (open, inprocess, completed, deleted)
-- Filter by priority range
-- Filter by label name
-- View overdue tasks
-
-## **Data Models**
-
-### User Collection
-```json
-{
-  "_id": "ObjectId",
-  "firstname": "string",
-  "lastname": "string",
-  "userid": "string (unique)",
-  "email": "string (unique)",
-  "password": "string",
-  "status": "active|inactive",
-  "last_login": "datetime"
-}
+```bash
+uv run pytest tests/
 ```
 
-### Tasks Collection
-```json
-{
-  "_id": "ObjectId",
-  "user_id": "string (references Users.userid)",
-  "title": "string",
-  "description": "string",
-  "priority": "integer (1-10, optional)",
-  "due_date": "datetime (optional)",
-  "labels": [
-    {
-      "name": "string",
-      "color": "string (hex)"
-    }
-  ],
-  "time_unit": "minutes|hours|days|weeks",
-  "estimated_time": "float (optional)",
-  "status": "open|inprocess|completed|deleted",
-  "notification_time_unit": "minutes|hours|days|weeks",
-  "notification_when": "float (optional)",
-  "dependencies": ["task_id", "task_id"],
-  "created_at": "datetime",
-  "updated_at": "datetime"
-}
+## Development
+
+### Code Formatting
+
+```bash
+uv run black src/
+uv run ruff check src/
 ```
 
-## **Future Enhancements**
-- RESTful API with FastAPI
-- Next.js frontend
-- Task notifications
-- Task scheduling
-- Collaboration features
-- Export/Import functionality
-- Data visualization and analytics
+### Type Checking
+
+```bash
+uv run mypy src/
+```
+
+## Migration History
+
+This application has undergone two major migrations:
+
+### 1. CLI to FastAPI Migration
+- ✅ Removed CLI interface (`src/User_int/`)
+- ✅ Created FastAPI application with full CRUD endpoints
+- ✅ Added comprehensive API documentation
+- ✅ Implemented proper error handling and validation
+- ✅ Added CORS support for web frontend integration
+
+### 2. PyMongo to Beanie ODM Migration
+- ✅ Migrated from PyMongo repositories to Beanie ODM
+- ✅ Created new Beanie document models with proper relationships
+- ✅ Implemented full async/await support
+- ✅ Enhanced type safety and validation
+- ✅ Added comprehensive test coverage for all models
+- ✅ Improved database connection management
+
+All functionality is now available through modern HTTP endpoints with proper REST conventions and async support.
+
+## Architecture
+
+- **FastAPI**: Modern, fast web framework for building APIs
+- **Beanie ODM**: Async MongoDB object-document mapper
+- **Pydantic**: Data validation and serialization
+- **Motor**: Async MongoDB driver
+- **MongoDB**: Document-based database
+- **Uvicorn**: ASGI server for production deployment
+- **CORS**: Cross-origin resource sharing for web integration
+
+## Key Benefits of Beanie Migration
+
+- **Type Safety**: Full type hints and validation throughout the application
+- **Async Support**: Native async/await support for better performance
+- **Relationships**: Proper document linking and relationship management
+- **Validation**: Built-in Pydantic validation for all data models
+- **Indexing**: Automatic index management for optimal query performance
+- **Error Handling**: Comprehensive error handling with proper HTTP status codes
+- **Extensibility**: Easy to add new fields and methods to models
 

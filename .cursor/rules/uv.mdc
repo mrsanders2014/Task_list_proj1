@@ -1,5 +1,7 @@
 ---
+description: "Use UV as the project management tool for python code"
 alwaysApply: true
+---
 # Package Management with `uv`
 
 These rules define strict guidelines for managing Python dependencies in this project using the `uv` dependency manager.
@@ -9,11 +11,11 @@ These rules define strict guidelines for managing Python dependencies in this pr
 - All Python dependencies **must be installed, synchronized, and locked** using `uv`.
 - Never use `pip`, `pip-tools`, or `poetry` directly for dependency management.
 
-**🔁 Managing Dependencies**
+## 🔁 Managing Dependencies
 
 Always use these commands:
 
-# ```bash
+```bash
 # Add or upgrade dependencies
 - Install dependencies: 'uv add <package>'
 
@@ -22,15 +24,15 @@ Always use these commands:
 
 # Reinstall all dependencies from lock file
 - Sync dependencies: 'uv sync'
+```
 
+## 🔁 Scripts
 
-**🔁 Scripts**
-
-#```bash
+```bash
 # Run script with proper dependencies
-- Run a Python sfript with 'uv run script.py'
+- Run a Python script with 'uv run script.py'
 - Run Python tools like Pytest with `uv run pytest` or `uv run ruff`
-- Launch a Python repl with `uv run python
+- Launch a Python repl with `uv run python`
 
 You can edit inline-metadata manually:
 
@@ -49,11 +51,11 @@ You can edit inline-metadata manually:
 # ///
 
 # print("some python code")
-`# ``
+```
 
 Or using uv cli:
 
-# ```bash
+```bash
 # Add or upgrade script dependencies
 uv add package-name --script script.py
 
@@ -62,5 +64,6 @@ uv remove package-name --script script.py
 
 # Reinstall all script dependencies from lock file
 uv sync --script script.py
-# ```
+```
+
 ---
