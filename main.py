@@ -98,6 +98,8 @@ async def health_check():
     }
 
 
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(_request, _exc):  # noqa: ARG001

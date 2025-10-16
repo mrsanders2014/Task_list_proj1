@@ -87,10 +87,9 @@ async def login_user(user_credentials: UserLoginSchema, response: Response):
         HTTPException: If credentials are invalid
     """
     # Find user by username or email
-    user = await BeanieUser.find_one(
-        (BeanieUser.username == user_credentials.username) | 
-        (BeanieUser.email == user_credentials.username)
-    )
+    user = await BeanieUser.find_one(BeanieUser.username == user_credentials.username)
+    if not user:
+        user = await BeanieUser.find_one(BeanieUser.email == user_credentials.username)
     
     if not user:
         raise HTTPException(
@@ -152,10 +151,9 @@ async def login_form(form_data: OAuth2PasswordRequestForm = Depends(), response:
         HTTPException: If credentials are invalid
     """
     # Find user by username or email
-    user = await BeanieUser.find_one(
-        (BeanieUser.username == form_data.username) | 
-        (BeanieUser.email == form_data.username)
-    )
+    user = await BeanieUser.find_one(BeanieUser.username == form_data.username)
+    if not user:
+        user = await BeanieUser.find_one(BeanieUser.email == form_data.username)
     
     if not user:
         raise HTTPException(

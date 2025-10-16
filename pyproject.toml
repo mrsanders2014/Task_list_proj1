@@ -5,6 +5,7 @@ description = "Application to allow user to create and track tasks"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "bcrypt==4.0.1",
     "beanie[fastapi]>=2.0.0",
     "email-validator>=2.0.0",
     "fastapi>=0.118.2",

@@ -109,9 +109,13 @@ const RegisterPage = () => {
                     value: 50,
                     message: 'Username must be less than 50 characters',
                   },
+                  pattern: {
+                    value: /^[a-zA-Z0-9_-]+$/,
+                    message: 'Username can only contain letters, numbers, underscores, and hyphens',
+                  },
                 })}
                 error={errors.username?.message}
-                placeholder="Choose a username"
+                placeholder="e.g., rockysanders99 (no special characters)"
                 autoComplete="username"
               />
               

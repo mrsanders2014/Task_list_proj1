@@ -33,7 +33,7 @@ export const PRIORITY_LEVELS = {
 // Priority options for forms
 export const PRIORITY_OPTIONS = [
   { value: PRIORITY_LEVELS.LOW, label: 'Low (1)', color: 'bg-green-100 text-green-800' },
-  { value: PRIORITY_LEVELS.MEDIUM_LOW, label: 'Medium Low (3)', color: 'bg-blue-100 text-blue-800' },
+  { value: PRIORITY_LEVELS.MEDIUM_LOW, label: 'Medium Low (3)', color: 'bg-blue-100 text-white' },
   { value: PRIORITY_LEVELS.MEDIUM, label: 'Medium (5)', color: 'bg-yellow-100 text-yellow-800' },
   { value: PRIORITY_LEVELS.MEDIUM_HIGH, label: 'Medium High (7)', color: 'bg-orange-100 text-orange-800' },
   { value: PRIORITY_LEVELS.HIGH, label: 'High (9)', color: 'bg-red-100 text-red-800' },
