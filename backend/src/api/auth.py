@@ -2,7 +2,7 @@
 Authentication API endpoints for JWT token management.
 """
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response
 from fastapi.security import OAuth2PasswordRequestForm
 
 from backend.src.models.beanie_user import BeanieUser
@@ -17,6 +17,8 @@ from backend.src.bus_rules.auth import (
     create_access_token,
     get_password_hash,
     get_current_user,
+    set_auth_cookie,
+    clear_auth_cookie,
     TokenData
 )
 
@@ -69,16 +71,17 @@ async def register_user(user_data: UserRegisterSchema):
     return user.to_response()
 
 
-@router.post("/login", response_model=Token)
-async def login_user(user_credentials: UserLoginSchema):
+@router.post("/login", response_model=UserResponseSchema)
+async def login_user(user_credentials: UserLoginSchema, response: Response):
     """
-    Authenticate user and return JWT token.
+    Authenticate user and set JWT token as HTTP-only cookie.
 
     Args:
         user_credentials: User login credentials
+        response: FastAPI response object
 
     Returns:
-        JWT access token
+        User information
 
     Raises:
         HTTPException: If credentials are invalid
@@ -122,23 +125,25 @@ async def login_user(user_credentials: UserLoginSchema):
         expires_delta=access_token_expires
     )
 
+    # Set token as HTTP-only cookie
+    set_auth_cookie(response, access_token, access_token_expires)
+
     # Update last login
     user.last_login = datetime.now()
     await user.save()
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    return user.to_response()
 
 
 @router.post("/login-form", response_model=Token)
-async def login_form(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_form(form_data: OAuth2PasswordRequestForm = Depends(), response: Response = None):
     """
     Authenticate user using OAuth2 password form (for Swagger UI).
+    Returns token in response body for API documentation compatibility.
 
     Args:
         form_data: OAuth2 password form data
+        response: FastAPI response object
 
     Returns:
         JWT access token
@@ -185,6 +190,10 @@ async def login_form(form_data: OAuth2PasswordRequestForm = Depends()):
         expires_delta=access_token_expires
     )
 
+    # Set token as HTTP-only cookie if response is available
+    if response:
+        set_auth_cookie(response, access_token, access_token_expires)
+
     # Update last login
     user.last_login = datetime.now()
     await user.save()
@@ -218,16 +227,17 @@ async def get_current_user_info(current_user: TokenData = Depends(get_current_us
     return user.to_response()
 
 
-@router.post("/refresh", response_model=Token)
-async def refresh_token(current_user: TokenData = Depends(get_current_user)):
+@router.post("/refresh", response_model=UserResponseSchema)
+async def refresh_token(current_user: TokenData = Depends(get_current_user), response: Response = None):
     """
     Refresh JWT access token.
 
     Args:
         current_user: Current authenticated user from JWT token
+        response: FastAPI response object
 
     Returns:
-        New JWT access token
+        User information with new token set as cookie
     """
     # Create new access token
     access_token_expires = timedelta(minutes=30)
@@ -241,7 +251,31 @@ async def refresh_token(current_user: TokenData = Depends(get_current_user)):
         expires_delta=access_token_expires
     )
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    # Set new token as HTTP-only cookie
+    if response:
+        set_auth_cookie(response, access_token, access_token_expires)
+
+    # Get user information
+    user = await BeanieUser.find_one(BeanieUser.username == current_user.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    return user.to_response()
+
+
+@router.post("/logout")
+async def logout_user(response: Response):
+    """
+    Logout user by clearing the authentication cookie.
+
+    Args:
+        response: FastAPI response object
+
+    Returns:
+        Success message
+    """
+    clear_auth_cookie(response)
+    return {"message": "Successfully logged out"}

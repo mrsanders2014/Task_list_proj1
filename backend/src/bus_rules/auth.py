@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional, Union
 from jose import JWTError, jwt
-from fastapi import HTTPException, status, Depends, Request
+from fastapi import HTTPException, status, Depends, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from dotenv import load_dotenv
@@ -20,6 +20,11 @@ load_dotenv()
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-super-secure-secret-key-here-32-chars-min")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+COOKIE_NAME = os.getenv("JWT_COOKIE_NAME", "access_token")
+COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN", "localhost")
+COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "false").lower() == "true"
+COOKIE_HTTP_ONLY = os.getenv("JWT_COOKIE_HTTP_ONLY", "true").lower() == "true"
+COOKIE_SAME_SITE = os.getenv("JWT_COOKIE_SAME_SITE", "lax")
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -97,12 +102,45 @@ def verify_token(token: str) -> TokenData:
         raise credentials_exception from exc
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> TokenData:
+def get_token_from_cookie(request: Request) -> Optional[str]:
     """
-    Dependency to get the current authenticated user from JWT token
+    Extract JWT token from HTTP-only cookie
+    
+    Args:
+        request: FastAPI request object
+        
+    Returns:
+        JWT token string if found, None otherwise
+    """
+    return request.cookies.get(COOKIE_NAME)
+
+
+def get_token_from_header(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Optional[str]:
+    """
+    Extract JWT token from Authorization header (for backward compatibility)
     
     Args:
         credentials: HTTP Bearer token credentials
+        
+    Returns:
+        JWT token string if found, None otherwise
+    """
+    if credentials:
+        return credentials.credentials
+    return None
+
+
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> TokenData:
+    """
+    Dependency to get the current authenticated user from JWT token
+    Checks both cookies and Authorization header for backward compatibility
+    
+    Args:
+        request: FastAPI request object
+        credentials: HTTP Bearer token credentials (optional)
         
     Returns:
         TokenData object with user information
@@ -110,8 +148,64 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     Raises:
         HTTPException: If token is invalid or expired
     """
-    token = credentials.credentials
+    # Try to get token from cookie first (preferred method)
+    token = get_token_from_cookie(request)
+    
+    # Fallback to Authorization header for backward compatibility
+    if not token:
+        token = get_token_from_header(credentials)
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     return verify_token(token)
+
+
+def set_auth_cookie(response: Response, token: str, expires_delta: Optional[timedelta] = None) -> None:
+    """
+    Set JWT token as HTTP-only cookie
+    
+    Args:
+        response: FastAPI response object
+        token: JWT token to set
+        expires_delta: Cookie expiration time
+    """
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        expires=expire,
+        httponly=COOKIE_HTTP_ONLY,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAME_SITE,
+        domain=COOKIE_DOMAIN if COOKIE_DOMAIN != "localhost" else None,
+        path="/"
+    )
+
+
+def clear_auth_cookie(response: Response) -> None:
+    """
+    Clear JWT token cookie
+    
+    Args:
+        response: FastAPI response object
+    """
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        httponly=COOKIE_HTTP_ONLY,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAME_SITE,
+        domain=COOKIE_DOMAIN if COOKIE_DOMAIN != "localhost" else None,
+        path="/"
+    )
 
 
 async def get_current_user_from_request(request: Request) -> TokenData:
