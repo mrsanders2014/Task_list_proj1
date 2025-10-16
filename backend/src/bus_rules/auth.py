@@ -105,6 +105,42 @@ def verify_token(token: str) -> TokenData:
         raise credentials_exception from exc
 
 
+def decode_token_ignore_expiry(token: str) -> TokenData:
+    """
+    Decode a JWT token ignoring expiry (for refresh purposes)
+    
+    Args:
+        token: JWT token to decode
+        
+    Returns:
+        TokenData object with user information
+        
+    Raises:
+        HTTPException: If token is invalid (but not expired)
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
+        username: str = payload.get("sub")
+        user_id: str = payload.get("user_id")
+        token_type: str = payload.get("type")
+        version: int = payload.get("version")
+        
+        if username is None:
+            raise credentials_exception
+            
+        token_data = TokenData(username=username, user_id=user_id, type=token_type, version=version)
+        return token_data
+        
+    except JWTError as exc:
+        raise credentials_exception from exc
+
+
 def get_token_from_cookie(request: Request) -> Optional[str]:
     """
     Extract JWT token from HTTP-only cookie

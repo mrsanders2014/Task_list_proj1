@@ -45,7 +45,15 @@ async def create_task(task_data: TaskCreateSchema, current_user: TokenData = Dep
         
         # Create task management details if provided
         task_mgmt = None
-        if task_data.priority or task_data.due_date or task_data.estimated_time:
+        if task_data.task_mgmt:
+            # Use task_mgmt object if provided
+            task_mgmt = TaskMgmtDetails(
+                priority=task_data.task_mgmt.priority or 1,
+                duedate=task_data.task_mgmt.duedate,
+                estimated_time_to_complete=task_data.task_mgmt.estimated_time_to_complete
+            )
+        elif task_data.priority or task_data.due_date or task_data.estimated_time:
+            # Fallback to individual fields for backward compatibility
             task_mgmt = TaskMgmtDetails(
                 priority=task_data.priority or 1,
                 duedate=task_data.due_date,

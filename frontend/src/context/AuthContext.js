@@ -98,10 +98,25 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
+      
+      // Check if we have any cookies first
+      if (typeof document !== 'undefined') {
+        const hasAuthCookie = document.cookie.includes('access_token=');
+        if (!hasAuthCookie) {
+          console.log('No auth cookie found, skipping auth check');
+          dispatch({ type: AUTH_ACTIONS.LOGOUT });
+          return;
+        }
+      }
+      
       const user = await authService.getCurrentUser();
       dispatch({ type: AUTH_ACTIONS.SET_USER, payload: user });
     } catch (error) {
-      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: error.message });
+      console.log('Authentication check failed:', error.message);
+      // Don't treat this as a login failure, just clear the user state
+      dispatch({ type: AUTH_ACTIONS.LOGOUT });
+    } finally {
+      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
     }
   };
 

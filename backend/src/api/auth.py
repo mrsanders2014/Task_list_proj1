@@ -257,17 +257,38 @@ async def get_current_user_info(request: Request):
 
 
 @router.post("/refresh", response_model=UserResponseSchema)
-async def refresh_token(current_user: TokenData = Depends(get_current_user), response: Response = None):
+async def refresh_token(request: Request, response: Response = None):
     """
     Refresh JWT access token.
 
     Args:
-        current_user: Current authenticated user from JWT token
+        request: FastAPI request object
         response: FastAPI response object
 
     Returns:
         User information with new token set as cookie
     """
+    from backend.src.bus_rules.auth import get_token_from_cookie, decode_token_ignore_expiry
+    
+    # Get token from cookie (even if expired)
+    token = get_token_from_cookie(request)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No token found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    try:
+        # Decode token ignoring expiry
+        current_user = decode_token_ignore_expiry(token)
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     # Create new access token
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(

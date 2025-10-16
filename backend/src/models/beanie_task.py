@@ -6,7 +6,7 @@ Defines the Task document structure using Beanie ODM.
 from datetime import datetime, timedelta
 from typing import Optional, List, ClassVar
 from beanie import Document, Link
-from pydantic import Field, validator, BaseModel
+from pydantic import Field, field_validator, BaseModel
 from pymongo import IndexModel
 
 from backend.src.models.beanie_user import BeanieUser
@@ -47,7 +47,7 @@ class TaskMgmtDetails(BaseModel):
     notification_wanted: str = Field(default="N")
     time_mgmt: List[TaskTimeMgmt] = Field(default_factory=list)
     
-    @validator('time_unit', 'notify_time_units')
+    @field_validator('time_unit', 'notify_time_units')
     @classmethod
     def validate_time_units(cls, v):
         """Validate time unit values."""
@@ -55,7 +55,7 @@ class TaskMgmtDetails(BaseModel):
             raise ValueError(f"Time unit must be one of: {', '.join(cls.VALID_TIME_UNITS)}")
         return v
     
-    @validator('notification_wanted')
+    @field_validator('notification_wanted')
     @classmethod
     def validate_notification_wanted(cls, v):
         """Validate notification wanted field."""
@@ -63,12 +63,19 @@ class TaskMgmtDetails(BaseModel):
             raise ValueError("Notification wanted must be 'Y' or 'N'")
         return v
     
-    @validator('duedate')
+    @field_validator('duedate')
     @classmethod
     def validate_duedate(cls, v):
         """Validate due date is in the future."""
-        if v is not None and v <= datetime.now() + timedelta(minutes=1):
-            raise ValueError("Due date must be at least 1 minute in the future")
+        if v is not None:
+            # Handle timezone-aware datetime comparison
+            now = datetime.now()
+            if v.tzinfo is not None:
+                # If v is timezone-aware, make now timezone-aware too
+                from datetime import timezone
+                now = now.replace(tzinfo=timezone.utc)
+            if v <= now:
+                raise ValueError("Due date must be in the future")
         return v
 
 
@@ -80,7 +87,7 @@ class TaskHistoryEntry(BaseModel):
     lastmoddate: datetime = Field(default_factory=datetime.now)
     reason: str = Field(default="")
     
-    @validator('previous_status', 'new_status')
+    @field_validator('previous_status', 'new_status')
     @classmethod
     def validate_status(cls, v):
         """Validate status values."""
@@ -122,7 +129,7 @@ class BeanieTask(Document):
             IndexModel([("labels.name", 1)]),
         ]
     
-    @validator('title')
+    @field_validator('title')
     @classmethod
     def validate_title(cls, v):
         """Validate title field."""
@@ -130,13 +137,13 @@ class BeanieTask(Document):
             raise ValueError('Title cannot be empty')
         return v.strip()
     
-    @validator('description')
+    @field_validator('description')
     @classmethod
     def validate_description(cls, v):
         """Validate description field."""
         return v.strip() if v else ""
     
-    @validator('status')
+    @field_validator('status')
     @classmethod
     def validate_status(cls, v):
         """Validate status field."""

@@ -60,12 +60,21 @@ const TaskForm = ({
   };
 
   const handleFormSubmit = (data) => {
+    // Handle due date - if only date is provided, set to end of day
+    let duedate = null;
+    if (data.due_date) {
+      const selectedDate = new Date(data.due_date);
+      // Set to end of day (23:59:59) to ensure it's in the future
+      selectedDate.setHours(23, 59, 59, 999);
+      duedate = selectedDate.toISOString();
+    }
+    
     const formData = {
       ...data,
       labels: labels,
       task_mgmt: {
         priority: parseInt(data.priority),
-        duedate: data.due_date ? new Date(data.due_date).toISOString() : null,
+        duedate: duedate,
         estimated_time_to_complete: data.estimated_time ? parseFloat(data.estimated_time) : null,
         time_unit: data.time_unit,
       },
@@ -134,6 +143,7 @@ const TaskForm = ({
           <Input
             label="Due Date"
             type="date"
+            min={new Date().toISOString().split('T')[0]}
             {...register('due_date')}
             error={errors.due_date?.message}
           />

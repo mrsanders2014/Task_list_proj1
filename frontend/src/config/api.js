@@ -50,6 +50,24 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      // Don't try to refresh if the original request was already a refresh request
+      if (originalRequest.url?.includes('/auth/refresh')) {
+        console.log('Refresh token request failed, redirecting to login');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+
+      // Don't try to refresh if the original request was /auth/me (to prevent loops)
+      if (originalRequest.url?.includes('/auth/me')) {
+        console.log('Auth check failed, redirecting to login');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+
       try {
         console.log('Attempting to refresh token...');
         // Attempt to refresh token

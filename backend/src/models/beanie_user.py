@@ -5,7 +5,7 @@ Defines the User document structure using Beanie ODM.
 from datetime import datetime
 from typing import Optional
 from beanie import Document
-from pydantic import Field, EmailStr, validator
+from pydantic import Field, EmailStr, field_validator
 from pymongo import IndexModel
 
 
@@ -38,7 +38,7 @@ class BeanieUser(Document):
             IndexModel([("created_at", -1)]),
         ]
     
-    @validator('username')
+    @field_validator('username')
     @classmethod
     def validate_username(cls, v):
         """Validate username format."""
@@ -48,7 +48,7 @@ class BeanieUser(Document):
             raise ValueError('Username can only contain letters, numbers, underscores, and hyphens')
         return v.strip()
     
-    @validator('first_name', 'last_name')
+    @field_validator('first_name', 'last_name')
     @classmethod
     def validate_names(cls, v):
         """Validate name fields."""
