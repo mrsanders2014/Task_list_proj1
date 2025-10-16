@@ -23,7 +23,7 @@ const LoginPage = () => {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push('/tasks');
     }
   }, [isAuthenticated, router]);
 
@@ -32,7 +32,7 @@ const LoginPage = () => {
       setIsSubmitting(true);
       clearError();
       await login(data);
-      router.push('/dashboard');
+      router.push('/tasks');
     } catch (error) {
       console.error('Login error:', error);
     } finally {

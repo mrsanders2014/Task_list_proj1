@@ -10,7 +10,7 @@ import { useEffect } from 'react';
  */
 export const withAuth = (WrappedComponent, options = {}) => {
   const {
-    redirectTo = '/login',
+    redirectTo = '/', // Redirect to home page where login form is located
     requireAuth = true,
     loadingComponent: LoadingComponent = null,
   } = options;
@@ -26,7 +26,7 @@ export const withAuth = (WrappedComponent, options = {}) => {
           router.push(redirectTo);
         } else if (!requireAuth && isAuthenticated) {
           // Redirect away from auth pages if user is already authenticated
-          router.push('/dashboard');
+          router.push('/tasks');
         }
       }
     }, [isAuthenticated, isLoading, router]);
@@ -60,7 +60,7 @@ export const withAuth = (WrappedComponent, options = {}) => {
  */
 export const useAuthGuard = (options = {}) => {
   const {
-    redirectTo = '/login',
+    redirectTo = '/', // Redirect to home page where login form is located
     requireAuth = true,
   } = options;
 
@@ -72,7 +72,7 @@ export const useAuthGuard = (options = {}) => {
       if (requireAuth && !isAuthenticated) {
         router.push(redirectTo);
       } else if (!requireAuth && isAuthenticated) {
-        router.push('/dashboard');
+        router.push('/tasks');
       }
     }
   }, [isAuthenticated, isLoading, router]);
@@ -92,7 +92,7 @@ export const useAuthGuard = (options = {}) => {
 export const AuthGuard = ({ 
   children, 
   requireAuth = true, 
-  redirectTo = '/login',
+  redirectTo = '/', // Redirect to home page where login form is located
   fallback = null 
 }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -103,7 +103,7 @@ export const AuthGuard = ({
       if (requireAuth && !isAuthenticated) {
         router.push(redirectTo);
       } else if (!requireAuth && isAuthenticated) {
-        router.push('/dashboard');
+        router.push('/tasks');
       }
     }
   }, [isAuthenticated, isLoading, router]);

@@ -19,8 +19,8 @@ const Navbar = () => {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard' },
     { name: 'Tasks', href: '/tasks' },
+    { name: 'Dashboard', href: '/dashboard' },
   ];
 
   return (
@@ -30,7 +30,7 @@ const Navbar = () => {
           <div className="flex">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href={isAuthenticated ? '/dashboard' : '/'} className="text-xl font-bold text-gray-900">
+              <Link href={isAuthenticated ? '/tasks' : '/'} className="text-xl font-bold text-gray-900">
                 Task Manager
               </Link>
             </div>

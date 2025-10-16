@@ -23,9 +23,38 @@ class AuthService {
    */
   async login(credentials) {
     try {
+      console.log('AuthService: Login attempt with credentials:', credentials);
+      
+      // Try the regular login endpoint first (sets cookies)
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
+      console.log('AuthService: Login successful, response:', response.data);
+      
+      // Also try the login-form endpoint to get the token in response body
+      try {
+        const formData = new FormData();
+        formData.append('username', credentials.username);
+        formData.append('password', credentials.password);
+        
+        const tokenResponse = await apiClient.post('/auth/login-form', formData, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+        
+        console.log('AuthService: Token response:', tokenResponse.data);
+        
+        // Store token in localStorage as backup
+        if (tokenResponse.data.access_token) {
+          localStorage.setItem('access_token', tokenResponse.data.access_token);
+          console.log('AuthService: Token stored in localStorage');
+        }
+      } catch (tokenError) {
+        console.warn('AuthService: Could not get token from login-form endpoint:', tokenError);
+      }
+      
       return response.data;
     } catch (error) {
+      console.error('AuthService: Login failed, error:', error);
       throw this.handleError(error);
     }
   }
@@ -40,6 +69,10 @@ class AuthService {
     } catch (error) {
       // Even if logout fails on server, we should clear local state
       console.warn('Logout request failed:', error);
+    } finally {
+      // Clear token from localStorage
+      localStorage.removeItem('access_token');
+      console.log('AuthService: Token removed from localStorage');
     }
   }
 
@@ -49,8 +82,21 @@ class AuthService {
    */
   async getCurrentUser() {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
-      return response.data;
+      // Check if we have a token in localStorage and add it to the request
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        console.log('AuthService: Using token from localStorage for getCurrentUser');
+        const response = await apiClient.get(API_ENDPOINTS.AUTH.ME, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        return response.data;
+      } else {
+        // Try without token (rely on cookies)
+        const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
+        return response.data;
+      }
     } catch (error) {
       throw this.handleError(error);
     }
@@ -91,7 +137,26 @@ class AuthService {
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
-      const message = data?.detail || data?.message || 'An error occurred';
+      console.error('AuthService: API Error Response:', { status, data });
+      
+      let message = 'An error occurred';
+      
+      if (typeof data === 'string') {
+        message = data;
+      } else if (data?.detail) {
+        if (typeof data.detail === 'string') {
+          message = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          // Handle validation errors
+          message = data.detail.map(err => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
+        } else {
+          message = JSON.stringify(data.detail);
+        }
+      } else if (data?.message) {
+        message = data.message;
+      } else if (data) {
+        message = JSON.stringify(data);
+      }
       
       return new Error(`${status}: ${message}`);
     } else if (error.request) {

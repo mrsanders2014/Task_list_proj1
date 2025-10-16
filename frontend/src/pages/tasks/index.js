@@ -30,22 +30,37 @@ const TasksPage = () => {
     setPagination,
   } = useTask();
   
-  const { logout } = useAuth();
+  const { logout, isAuthenticated, user, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    console.log('Tasks page: useEffect triggered');
+    console.log('Tasks page: isAuthenticated:', isAuthenticated);
+    console.log('Tasks page: user:', user);
+    console.log('Tasks page: authLoading:', authLoading);
+    console.log('Tasks page: tasks length:', tasks.length);
+    
+    if (isAuthenticated && user && !authLoading) {
+      console.log('Tasks page: Calling fetchTasks...');
+      fetchTasks({}, true); // Force refresh to ensure we get latest data
+    } else {
+      console.log('Tasks page: Not calling fetchTasks because:', {
+        isAuthenticated,
+        hasUser: !!user,
+        authLoading
+      });
+    }
+  }, [fetchTasks, isAuthenticated, user, authLoading]);
 
   const handleCreateTask = async (taskData) => {
     try {
       setIsSubmitting(true);
       await createTask(taskData);
       setIsCreateModalOpen(false);
-      fetchTasks(); // Refresh the list
+      fetchTasks({}, true); // Force refresh the list
     } catch (error) {
       console.error('Error creating task:', error);
     } finally {
@@ -58,7 +73,7 @@ const TasksPage = () => {
     if (window.confirm(`Are you sure you want to delete "${task.title}"?`)) {
       try {
         await deleteTask(task.id);
-        fetchTasks(); // Refresh the list
+        fetchTasks({}, true); // Force refresh the list
       } catch (error) {
         console.error('Error deleting task:', error);
       }
@@ -71,7 +86,7 @@ const TasksPage = () => {
   };
 
   const handleSearch = () => {
-    fetchTasks();
+    fetchTasks({}, true);
   };
 
   const clearFilters = () => {

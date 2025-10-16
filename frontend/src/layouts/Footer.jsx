@@ -29,11 +29,6 @@ const Footer = () => {
                   Tasks
                 </a>
               </li>
-              <li>
-                <a href="/users" className="text-sm text-gray-600 hover:text-gray-900">
-                  Users
-                </a>
-              </li>
             </ul>
           </div>
           

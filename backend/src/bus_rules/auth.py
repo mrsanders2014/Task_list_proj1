@@ -229,7 +229,7 @@ def set_auth_cookie(response: Response, token: str, expires_delta: Optional[time
         httponly=COOKIE_HTTP_ONLY,
         secure=COOKIE_SECURE,
         samesite=COOKIE_SAME_SITE_VALUE,
-        domain=COOKIE_DOMAIN if COOKIE_DOMAIN != "localhost" else None,
+        domain=None,  # Don't set domain for localhost development
         path="/"
     )
 
@@ -246,7 +246,7 @@ def clear_auth_cookie(response: Response) -> None:
         httponly=COOKIE_HTTP_ONLY,
         secure=COOKIE_SECURE,
         samesite=COOKIE_SAME_SITE_VALUE,
-        domain=COOKIE_DOMAIN if COOKIE_DOMAIN != "localhost" else None,
+        domain=None,  # Don't set domain for localhost development
         path="/"
     )
 

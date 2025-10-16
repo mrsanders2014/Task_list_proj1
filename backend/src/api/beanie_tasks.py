@@ -136,32 +136,38 @@ async def get_tasks(
             )
         
         # Build query - always filter by current user unless user_id is specified
-        query = {"user": user}
-        
         if user_id:
             # If user_id is provided, use that instead (for admin purposes)
             specified_user = await BeanieUser.get(user_id)
             if specified_user:
-                query["user"] = specified_user
+                user_filter = BeanieTask.user.id == specified_user.id
             else:
                 return []  # User not found, return empty list
+        else:
+            user_filter = BeanieTask.user.id == user.id
         
+        # Start with user filter
+        query = user_filter
+        
+        # Add additional filters
         if task_status:
-            query["status"] = task_status
+            query = query & (BeanieTask.status == task_status)
         
         if min_priority is not None or max_priority is not None:
-            priority_query = {}
-            if min_priority is not None:
-                priority_query["$gte"] = min_priority
-            if max_priority is not None:
-                priority_query["$lte"] = max_priority
-            query["task_mgmt.priority"] = priority_query
+            if min_priority is not None and max_priority is not None:
+                priority_filter = (BeanieTask.task_mgmt.priority >= min_priority) & (BeanieTask.task_mgmt.priority <= max_priority)
+            elif min_priority is not None:
+                priority_filter = BeanieTask.task_mgmt.priority >= min_priority
+            else:
+                priority_filter = BeanieTask.task_mgmt.priority <= max_priority
+            query = query & priority_filter
         
         if label_name:
-            query["labels.name"] = label_name
+            query = query & (BeanieTask.labels.name == label_name)
         
         if overdue_only:
-            query["task_mgmt.duedate"] = {"$lt": datetime.now()}
+            from datetime import datetime
+            query = query & (BeanieTask.task_mgmt.duedate < datetime.now())
         
         # Find tasks with pagination
         tasks = await BeanieTask.find(query).skip(skip).limit(limit).to_list()

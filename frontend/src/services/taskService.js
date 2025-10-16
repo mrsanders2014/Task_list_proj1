@@ -9,6 +9,7 @@ class TaskService {
    */
   async getTasks(filters = {}) {
     try {
+      console.log('TaskService: getTasks called with filters:', filters);
       const params = new URLSearchParams();
       
       // Add filter parameters
@@ -18,9 +19,22 @@ class TaskService {
         }
       });
 
-      const response = await apiClient.get(`${API_ENDPOINTS.TASKS.LIST}?${params}`);
+      const url = `${API_ENDPOINTS.TASKS.LIST}?${params}`;
+      console.log('TaskService: Making request to:', url);
+      console.log('TaskService: Request config:', {
+        withCredentials: true,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const response = await apiClient.get(url);
+      console.log('TaskService: Response received:', {
+        status: response.status,
+        dataLength: response.data?.length,
+        data: response.data
+      });
       return response.data;
     } catch (error) {
+      console.error('TaskService: Error in getTasks:', error);
       throw this.handleError(error);
     }
   }
@@ -32,9 +46,30 @@ class TaskService {
    */
   async getTask(taskId) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.TASKS.DETAIL(taskId));
+      console.log('TaskService: getTask called with taskId:', taskId);
+      const url = API_ENDPOINTS.TASKS.DETAIL(taskId);
+      console.log('TaskService: Making request to:', url);
+      console.log('TaskService: Full URL will be:', `${apiClient.defaults.baseURL}${url}`);
+      
+      const response = await apiClient.get(url);
+      console.log('TaskService: getTask response received:', {
+        status: response.status,
+        data: response.data
+      });
       return response.data;
     } catch (error) {
+      console.error('TaskService: Error in getTask:', error);
+      console.error('TaskService: Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
+        }
+      });
       throw this.handleError(error);
     }
   }
@@ -148,7 +183,26 @@ class TaskService {
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
-      const message = data?.detail || data?.message || 'An error occurred';
+      console.error('API Error Response:', { status, data });
+      
+      let message = 'An error occurred';
+      
+      if (typeof data === 'string') {
+        message = data;
+      } else if (data?.detail) {
+        if (typeof data.detail === 'string') {
+          message = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          // Handle validation errors
+          message = data.detail.map(err => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
+        } else {
+          message = JSON.stringify(data.detail);
+        }
+      } else if (data?.message) {
+        message = data.message;
+      } else if (data) {
+        message = JSON.stringify(data);
+      }
       
       return new Error(`${status}: ${message}`);
     } else if (error.request) {

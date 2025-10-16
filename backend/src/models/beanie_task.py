@@ -66,16 +66,11 @@ class TaskMgmtDetails(BaseModel):
     @field_validator('duedate')
     @classmethod
     def validate_duedate(cls, v):
-        """Validate due date is in the future."""
+        """Validate due date format (allow past dates for overdue tasks)."""
         if v is not None:
-            # Handle timezone-aware datetime comparison
-            now = datetime.now()
-            if v.tzinfo is not None:
-                # If v is timezone-aware, make now timezone-aware too
-                from datetime import timezone
-                now = now.replace(tzinfo=timezone.utc)
-            if v <= now:
-                raise ValueError("Due date must be in the future")
+            # Just ensure it's a valid datetime - allow past dates for overdue tasks
+            if not isinstance(v, datetime):
+                raise ValueError("Due date must be a valid datetime")
         return v
 
 

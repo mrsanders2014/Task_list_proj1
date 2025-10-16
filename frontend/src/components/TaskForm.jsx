@@ -78,6 +78,9 @@ const TaskForm = ({
         duedate: duedate,
         estimated_time_to_complete: data.estimated_time ? parseFloat(data.estimated_time) : null,
         time_unit: data.time_unit,
+        notify_time: 0,
+        notify_time_units: "hours",
+        notification_wanted: "N",
       },
     };
     

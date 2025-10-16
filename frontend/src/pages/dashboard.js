@@ -1,37 +1,87 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import { useTask } from '../context/TaskContext';
-import { withAuth } from '../middleware/authMiddleware';
+// Removed withAuth import - handling auth manually
 import MainLayout from '../layouts/MainLayout';
 import Card from '../components/Card';
+import TaskCard from '../components/TaskCard';
 import Loader from '../components/Loader';
 import ErrorMessage from '../components/ErrorMessage';
 import { TASK_STATUS_OPTIONS } from '../constants';
 
 const DashboardPage = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+  
+  // Debug authentication state (reduced logging to prevent spam)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Dashboard: Auth state:', {
+      isAuthenticated,
+      authLoading,
+      user: user ? { username: user.username, id: user.id } : null
+    });
+  }
   const { 
     statistics, 
+    tasks,
     fetchStatistics, 
+    fetchTasks,
     isLoading, 
     error, 
     clearError 
   } = useTask();
 
+  const [hasFetchedData, setHasFetchedData] = useState(false);
+
+  // Removed manual authentication check to prevent infinite loop
+
+  // If not authenticated, redirect to login immediately
+  useEffect(() => {
+    // Only redirect if we're sure the user is not authenticated and not loading
+    if (!isAuthenticated && !authLoading) {
+      console.log('Dashboard: User not authenticated, redirecting to login');
+      router.push('/'); // Redirect to home page where login form is located
+    }
+  }, [isAuthenticated, authLoading, router]);
+
   const fetchStats = useCallback(async () => {
-    if (isAuthenticated && !authLoading) {
+    if (isAuthenticated && !authLoading && user && !hasFetchedData) {
       try {
-        await fetchStatistics();
+        console.log('Fetching dashboard data for user:', user.username);
+        setHasFetchedData(true);
+        await Promise.all([
+          fetchStatistics(),
+          fetchTasks({}, true) // Fetch recent tasks
+        ]);
       } catch (error) {
-        console.error('Failed to fetch statistics:', error);
+        console.error('Failed to fetch dashboard data:', error);
+        setHasFetchedData(false); // Reset on error to allow retry
       }
     }
-  }, [isAuthenticated, authLoading, fetchStatistics]);
+  }, [isAuthenticated, authLoading, user, hasFetchedData, fetchStatistics, fetchTasks]);
+
+  // Force refresh tasks when user changes (for debugging)
+  useEffect(() => {
+    if (user && user.username) {
+      console.log('User changed, resetting fetch state for:', user.username);
+      setHasFetchedData(false);
+    }
+  }, [user?.username]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (isAuthenticated && !authLoading && user && !hasFetchedData) {
+      fetchStats();
+    }
+  }, [isAuthenticated, authLoading, user, hasFetchedData, fetchStats]);
+
+  // Reset fetched data state when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setHasFetchedData(false);
+    }
+  }, [isAuthenticated]);
 
   const StatCard = ({ title, value, color = 'gray', icon }) => (
     <Card className="p-6">
@@ -61,11 +111,32 @@ const DashboardPage = () => {
     </Card>
   );
 
-  if (authLoading || isLoading) {
+  // Show loading only during initial auth check or when fetching data for the first time
+  if (authLoading || (!hasFetchedData && isAuthenticated && user)) {
     return (
       <MainLayout>
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <Loader size="lg" text="Loading dashboard..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // If not authenticated, show loading while redirecting
+  if (!isAuthenticated && !authLoading) {
+    return (
+      <MainLayout>
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+            <p className="text-gray-600 mb-6">You need to log in to access the dashboard.</p>
+            <Loader size="lg" text="Redirecting to login..." />
+            <div className="mt-4">
+              <Link href="/" className="text-blue-600 hover:text-blue-800">
+                Or click here to go to login page
+              </Link>
+            </div>
+          </div>
         </div>
       </MainLayout>
     );
@@ -97,7 +168,7 @@ const DashboardPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Total Tasks"
-            value={statistics?.total_tasks || 0}
+            value={statistics?.total || 0}
             color="bg-blue-100 text-white"
             icon={
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -107,7 +178,7 @@ const DashboardPage = () => {
           />
           <StatCard
             title="Overdue Tasks"
-            value={statistics?.overdue_tasks || 0}
+            value={statistics?.overdue || 0}
             color="bg-red-100 text-red-600"
             icon={
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -127,7 +198,7 @@ const DashboardPage = () => {
           />
           <StatCard
             title="Completed"
-            value={statistics?.tasks_by_status?.Complete || 0}
+            value={statistics?.Complete || 0}
             color="bg-green-100 text-green-600"
             icon={
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -149,7 +220,7 @@ const DashboardPage = () => {
             <Card.Content>
               <div className="space-y-3">
                 {TASK_STATUS_OPTIONS.map((status) => {
-                  const count = statistics?.tasks_by_status?.[status.value] || 0;
+                  const count = statistics?.[status.value] || 0;
                   return (
                     <StatusCard
                       key={status.value}
@@ -211,9 +282,83 @@ const DashboardPage = () => {
             </Card.Content>
           </Card>
         </div>
+
+        {/* Recent Tasks */}
+        <div className="mt-8">
+          <Card>
+            <Card.Header>
+              <Card.Title>Recent Tasks</Card.Title>
+              <Card.Description>
+                Your most recent tasks
+              </Card.Description>
+            </Card.Header>
+            <Card.Content>
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader size="md" text="Loading tasks..." />
+                </div>
+              ) : tasks && tasks.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {tasks.slice(0, 6).map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onEdit={(task) => {
+                        router.push(`/tasks/${task.id}/edit`);
+                      }}
+                      onDelete={() => {
+                        // Handle delete if needed
+                        console.log('Delete task:', task.id);
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No tasks found</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Get started by creating a new task.
+                  </p>
+                  <div className="mt-6">
+                    <Link
+                      href="/tasks/new"
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                      Create Task
+                    </Link>
+                  </div>
+                </div>
+              )}
+              
+              {tasks && tasks.length > 6 && (
+                <div className="mt-6 text-center">
+                  <Link
+                    href="/tasks"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    View All Tasks ({tasks.length})
+                  </Link>
+                </div>
+              )}
+            </Card.Content>
+          </Card>
+        </div>
       </div>
     </MainLayout>
   );
 };
 
-export default withAuth(DashboardPage);
+export default DashboardPage;

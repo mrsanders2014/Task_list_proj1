@@ -2,29 +2,34 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
+// Debug: Log the API configuration
+console.log('API Configuration:', {
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  API_BASE_URL: API_BASE_URL,
+  NODE_ENV: process.env.NODE_ENV
+});
+
 // Create axios instance with default configuration
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true, // Enable cookies for HTTP-only JWT tokens
+  timeout: 10000, // 10 second timeout
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
+// Connectivity test removed to prevent resource exhaustion
+
 // Request interceptor for logging and adding common headers
 apiClient.interceptors.request.use(
   (config) => {
+    // Reduced logging to prevent performance issues
     console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`);
-    console.log('Request config:', {
-      url: config.url,
-      method: config.method,
-      withCredentials: config.withCredentials,
-      headers: config.headers
-    });
     return config;
   },
   (error) => {
-    console.error('Request error:', error);
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -32,19 +37,14 @@ apiClient.interceptors.request.use(
 // Response interceptor for handling errors and token refresh
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`Response received: ${response.status} for ${response.config.url}`);
+    // Reduced logging to prevent performance issues
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
     
-    console.error('Response error:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method
-    });
+    // Reduced logging to prevent performance issues
+    console.error('Response error:', error.response?.status, error.config?.url);
 
     // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -54,7 +54,7 @@ apiClient.interceptors.response.use(
       if (originalRequest.url?.includes('/auth/refresh')) {
         console.log('Refresh token request failed, redirecting to login');
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/'; // Redirect to home page where login form is located
         }
         return Promise.reject(error);
       }
@@ -63,7 +63,7 @@ apiClient.interceptors.response.use(
       if (originalRequest.url?.includes('/auth/me')) {
         console.log('Auth check failed, redirecting to login');
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/'; // Redirect to home page where login form is located
         }
         return Promise.reject(error);
       }
@@ -79,7 +79,7 @@ apiClient.interceptors.response.use(
         console.error('Token refresh failed:', refreshError);
         // Refresh failed, redirect to login
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/'; // Redirect to home page where login form is located
         }
         return Promise.reject(refreshError);
       }

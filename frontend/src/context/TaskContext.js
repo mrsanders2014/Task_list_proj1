@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import taskService from '../services/taskService';
+import { useAuth } from './AuthContext';
 
 // Initial state
 const initialState = {
@@ -141,22 +142,23 @@ export const TaskProvider = ({ children }) => {
   const [state, dispatch] = useReducer(taskReducer, initialState);
   const lastFetchTime = useRef(0);
   const FETCH_COOLDOWN = 1000; // 1 second cooldown between requests
+  const { user } = useAuth();
 
-  const setLoading = (loading) => {
+  const setLoading = useCallback((loading) => {
     dispatch({ type: TASK_ACTIONS.SET_LOADING, payload: loading });
-  };
+  }, []);
 
-  const setError = (error) => {
+  const setError = useCallback((error) => {
     dispatch({ type: TASK_ACTIONS.SET_ERROR, payload: error });
-  };
+  }, []);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: TASK_ACTIONS.CLEAR_ERROR });
-  };
+  }, []);
 
-  const fetchTasks = async (customFilters = {}) => {
+  const fetchTasks = useCallback(async (customFilters = {}, forceRefresh = false) => {
     const now = Date.now();
-    if (now - lastFetchTime.current < FETCH_COOLDOWN) {
+    if (!forceRefresh && now - lastFetchTime.current < FETCH_COOLDOWN) {
       console.log('Rate limiting: skipping fetch tasks request');
       return state.tasks; // Return cached data
     }
@@ -165,30 +167,44 @@ export const TaskProvider = ({ children }) => {
       setLoading(true);
       lastFetchTime.current = now;
       const filters = { ...state.filters, ...customFilters };
+      console.log('TaskContext: Fetching tasks with filters:', filters);
+      console.log('TaskContext: About to call taskService.getTasks...');
       const tasks = await taskService.getTasks(filters);
+      console.log('TaskContext: Tasks fetched successfully:', tasks.length, tasks);
       dispatch({ type: TASK_ACTIONS.SET_TASKS, payload: tasks });
       return tasks;
     } catch (error) {
+      console.error('TaskContext: Error fetching tasks:', error);
+      console.error('TaskContext: Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       setError(error.message);
-      throw error;
+      // Don't throw the error to prevent the dashboard from crashing
+      // Return empty array as fallback
+      return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, [state.filters]); // Remove state.tasks dependency to avoid infinite re-renders
 
-  const fetchTask = async (taskId) => {
+  const fetchTask = useCallback(async (taskId) => {
     try {
+      console.log('TaskContext: fetchTask called with taskId:', taskId);
       setLoading(true);
       const task = await taskService.getTask(taskId);
+      console.log('TaskContext: fetchTask successful, task:', task);
       dispatch({ type: TASK_ACTIONS.SET_CURRENT_TASK, payload: task });
       return task;
     } catch (error) {
+      console.error('TaskContext: Error in fetchTask:', error);
       setError(error.message);
       throw error;
     }
-  };
+  }, []); // Empty dependency array since this function doesn't depend on any state
 
-  const createTask = async (taskData) => {
+  const createTask = useCallback(async (taskData) => {
     try {
       setLoading(true);
       const newTask = await taskService.createTask(taskData);
@@ -198,9 +214,9 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  };
+  }, []);
 
-  const updateTask = async (taskId, taskData) => {
+  const updateTask = useCallback(async (taskId, taskData) => {
     try {
       setLoading(true);
       const updatedTask = await taskService.updateTask(taskId, taskData);
@@ -210,9 +226,9 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  };
+  }, []);
 
-  const deleteTask = async (taskId) => {
+  const deleteTask = useCallback(async (taskId) => {
     try {
       setLoading(true);
       await taskService.deleteTask(taskId);
@@ -221,9 +237,9 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  };
+  }, []);
 
-  const updateTaskStatus = async (taskId, status, reason = '') => {
+  const updateTaskStatus = useCallback(async (taskId, status, reason = '') => {
     try {
       setLoading(true);
       const updatedTask = await taskService.updateTaskStatus(taskId, status, reason);
@@ -233,7 +249,7 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  };
+  }, []);
 
   const fetchStatistics = useCallback(async () => {
     const now = Date.now();
@@ -245,32 +261,48 @@ export const TaskProvider = ({ children }) => {
     try {
       setLoading(true);
       lastFetchTime.current = now;
+      console.log('Fetching task statistics...');
       const statistics = await taskService.getTaskStatistics();
+      console.log('Statistics fetched successfully:', statistics);
       dispatch({ type: TASK_ACTIONS.SET_STATISTICS, payload: statistics });
       return statistics;
     } catch (error) {
+      console.error('Error fetching statistics:', error);
       setError(error.message);
-      throw error;
+      // Don't throw the error to prevent the dashboard from crashing
+      // Return null as fallback
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [state.statistics]);
+  }, []); // Remove state.statistics dependency to prevent unnecessary re-renders
 
-  const setFilters = (filters) => {
+  const setFilters = useCallback((filters) => {
     dispatch({ type: TASK_ACTIONS.SET_FILTERS, payload: filters });
-  };
+  }, []);
 
-  const setPagination = (pagination) => {
+  const setPagination = useCallback((pagination) => {
     dispatch({ type: TASK_ACTIONS.SET_PAGINATION, payload: pagination });
-  };
+  }, []);
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     dispatch({ type: TASK_ACTIONS.RESET_FILTERS });
-  };
+  }, []);
 
-  const clearCurrentTask = () => {
+  const clearCurrentTask = useCallback(() => {
     dispatch({ type: TASK_ACTIONS.CLEAR_CURRENT_TASK });
-  };
+  }, []);
+
+  // Clear tasks and statistics when user changes
+  useEffect(() => {
+    if (user?.username) {
+      // Clear current task when user changes
+      dispatch({ type: TASK_ACTIONS.CLEAR_CURRENT_TASK });
+      // Reset tasks and statistics to prevent stale data
+      dispatch({ type: TASK_ACTIONS.SET_TASKS, payload: [] });
+      dispatch({ type: TASK_ACTIONS.SET_STATISTICS, payload: null });
+    }
+  }, [user?.username]);
 
   const value = {
     ...state,
