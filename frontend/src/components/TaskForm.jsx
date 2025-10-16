@@ -10,6 +10,7 @@ const TaskForm = ({
   onCancel,
   isLoading = false,
   className = '',
+  isEditMode = false,
 }) => {
   const [labels, setLabels] = useState([]);
   const [newLabel, setNewLabel] = useState({ name: '', color: '#808080' });
@@ -87,12 +88,24 @@ const TaskForm = ({
     <form onSubmit={handleSubmit(handleFormSubmit)} className={`space-y-6 ${className}`}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="md:col-span-2">
-          <Input
-            label="Title"
-            {...register('title', { required: 'Title is required' })}
-            error={errors.title?.message}
-            placeholder="Enter task title"
-          />
+          {isEditMode ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title
+              </label>
+              <div className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500">
+                {task?.title || 'No title'}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Title cannot be modified</p>
+            </div>
+          ) : (
+            <Input
+              label="Title"
+              {...register('title', { required: 'Title is required' })}
+              error={errors.title?.message}
+              placeholder="Enter task title"
+            />
+          )}
         </div>
         
         <div className="md:col-span-2">
@@ -242,7 +255,7 @@ const TaskForm = ({
           type="submit"
           loading={isLoading}
         >
-          {task ? 'Update Task' : 'Create Task'}
+          {isEditMode ? 'Accept Changes' : (task ? 'Update Task' : 'Create Task')}
         </Button>
       </div>
     </form>

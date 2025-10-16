@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useTask } from '../../context/TaskContext';
+import { useAuth } from '../../context/AuthContext';
 import { withAuth } from '../../middleware/authMiddleware';
 import MainLayout from '../../layouts/MainLayout';
 import Card from '../../components/Card';
@@ -27,9 +29,11 @@ const TasksPage = () => {
     pagination,
     setPagination,
   } = useTask();
+  
+  const { logout } = useAuth();
+  const router = useRouter();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -49,18 +53,6 @@ const TasksPage = () => {
     }
   };
 
-  const handleEditTask = async (taskData) => {
-    try {
-      setIsSubmitting(true);
-      await updateTask(editingTask.id, taskData);
-      setEditingTask(null);
-      fetchTasks(); // Refresh the list
-    } catch (error) {
-      console.error('Error updating task:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleDeleteTask = async (task) => {
     if (window.confirm(`Are you sure you want to delete "${task.title}"?`)) {
@@ -91,6 +83,15 @@ const TasksPage = () => {
       overdue_only: false,
     });
     setPagination({ currentPage: 1 });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -251,7 +252,7 @@ const TasksPage = () => {
                   task={task}
                   onEdit={(task) => {
                     console.log('TaskCard onEdit called with task:', task);
-                    setEditingTask(task);
+                    router.push(`/tasks/${task.id}/edit`);
                   }}
                   onDelete={handleDeleteTask}
                 />
@@ -274,20 +275,22 @@ const TasksPage = () => {
           />
         </Modal>
 
-        {/* Edit Task Modal */}
-        <Modal
-          isOpen={!!editingTask}
-          onClose={() => setEditingTask(null)}
-          title="Edit Task"
-          size="lg"
-        >
-          <TaskForm
-            task={editingTask}
-            onSubmit={handleEditTask}
-            onCancel={() => setEditingTask(null)}
-            isLoading={isSubmitting}
-          />
-        </Modal>
+
+        {/* Logout Button */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Logout
+            </Button>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

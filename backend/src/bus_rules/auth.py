@@ -4,7 +4,7 @@ Authentication utilities for JWT token handling
 
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Union
+from typing import Optional, Union, Literal, cast
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -25,6 +25,10 @@ COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN", "localhost")
 COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "false").lower() == "true"
 COOKIE_HTTP_ONLY = os.getenv("JWT_COOKIE_HTTP_ONLY", "true").lower() == "true"
 COOKIE_SAME_SITE = os.getenv("JWT_COOKIE_SAME_SITE", "lax")
+COOKIE_SAME_SITE_VALUE: Literal["lax", "strict", "none"] = cast(
+    Literal["lax", "strict", "none"], 
+    COOKIE_SAME_SITE if COOKIE_SAME_SITE in ["lax", "strict", "none"] else "lax"
+)
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
@@ -134,7 +138,7 @@ def decode_token_ignore_expiry(token: str) -> TokenData:
         if username is None:
             raise credentials_exception
             
-        token_data = TokenData(username=username, user_id=user_id, type=token_type, version=version)
+        token_data = TokenData(username=username, user_id=user_id, type=token_type, version=version)  # pylint: disable=unreachable
         return token_data
         
     except JWTError as exc:
@@ -224,7 +228,7 @@ def set_auth_cookie(response: Response, token: str, expires_delta: Optional[time
         expires=expire,
         httponly=COOKIE_HTTP_ONLY,
         secure=COOKIE_SECURE,
-        samesite=COOKIE_SAME_SITE,
+        samesite=COOKIE_SAME_SITE_VALUE,
         domain=COOKIE_DOMAIN if COOKIE_DOMAIN != "localhost" else None,
         path="/"
     )
@@ -241,7 +245,7 @@ def clear_auth_cookie(response: Response) -> None:
         key=COOKIE_NAME,
         httponly=COOKIE_HTTP_ONLY,
         secure=COOKIE_SECURE,
-        samesite=COOKIE_SAME_SITE,
+        samesite=COOKIE_SAME_SITE_VALUE,
         domain=COOKIE_DOMAIN if COOKIE_DOMAIN != "localhost" else None,
         path="/"
     )

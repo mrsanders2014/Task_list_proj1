@@ -21,7 +21,6 @@ const Navbar = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Tasks', href: '/tasks' },
-    { name: 'Users', href: '/users' },
   ];
 
   return (
