@@ -10,7 +10,7 @@ from backend.src.api.schemas import (
     UserUpdateSchema, 
     UserResponseSchema
 )
-from backend.src.bus_rules.auth import get_password_hash, get_current_user, TokenData
+from backend.src.bus_rules.auth import get_password_hash, get_user_from_cookie, TokenData
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -82,7 +82,7 @@ async def get_users(
     skip: int = Query(0, ge=0, description="Number of users to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of users to return"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    _current_user: TokenData = Depends(get_current_user)
+    current_user: TokenData = Depends(get_user_from_cookie)
 ):
     """
     Retrieve all users with optional filtering and pagination.
@@ -117,7 +117,7 @@ async def get_users(
 
 
 @router.get("/{user_id}", response_model=UserResponseSchema)
-async def get_user(user_id: str, current_user: TokenData = Depends(get_current_user)):
+async def get_user(user_id: str, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Retrieve a specific user by ID.
     
@@ -150,7 +150,7 @@ async def get_user(user_id: str, current_user: TokenData = Depends(get_current_u
 
 
 @router.put("/{user_id}", response_model=UserResponseSchema)
-async def update_user(user_id: str, user_data: UserUpdateSchema, current_user: TokenData = Depends(get_current_user)):
+async def update_user(user_id: str, user_data: UserUpdateSchema, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Update an existing user.
     
@@ -220,7 +220,7 @@ async def update_user(user_id: str, user_data: UserUpdateSchema, current_user: T
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: str, current_user: TokenData = Depends(get_current_user)):
+async def delete_user(user_id: str, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Delete a user.
     
@@ -250,7 +250,7 @@ async def delete_user(user_id: str, current_user: TokenData = Depends(get_curren
 
 
 @router.patch("/{user_id}/status", response_model=UserResponseSchema)
-async def change_user_status(user_id: str, is_active: bool, current_user: TokenData = Depends(get_current_user)):
+async def change_user_status(user_id: str, is_active: bool, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Change user active status.
     

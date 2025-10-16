@@ -26,9 +26,8 @@ app = FastAPI(
 # Add middleware (order matters - first added is outermost)
 app.add_middleware(CORSSecurityMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
-app.add_middleware(JWTAuthMiddleware, protected_paths=["/users", "/tasks"])
 
-# Add CORS middleware
+# Add CORS middleware first
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Frontend URLs
@@ -36,6 +35,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Add JWT auth middleware last (innermost)
+# app.add_middleware(JWTAuthMiddleware, protected_paths=["/users", "/tasks", "/auth/me"])
 
 # Include routers
 app.include_router(auth_router)
@@ -120,13 +122,13 @@ def main():
         print(f"✓ MongoDB URI: {MONGO_URI}")
         print(f"✓ Database Name: {DB_NAME}")
         print("✓ Launching Task Manager FastAPI application...")
-        print("✓ API Documentation available at: http://localhost:8000/docs")
-        print("✓ Alternative docs at: http://localhost:8000/redoc")
+        print("✓ API Documentation available at: http://localhost:8001/docs")
+        print("✓ Alternative docs at: http://localhost:8001/redoc")
         
         uvicorn.run(
             app,
             host="0.0.0.0",
-            port=8000,
+            port=8001,
             reload=True,
             log_level="info"
         )

@@ -15,6 +15,12 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`);
+    console.log('Request config:', {
+      url: config.url,
+      method: config.method,
+      withCredentials: config.withCredentials,
+      headers: config.headers
+    });
     return config;
   },
   (error) => {
@@ -26,21 +32,33 @@ apiClient.interceptors.request.use(
 // Response interceptor for handling errors and token refresh
 apiClient.interceptors.response.use(
   (response) => {
+    console.log(`Response received: ${response.status} for ${response.config.url}`);
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
+    
+    console.error('Response error:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method
+    });
 
     // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
+        console.log('Attempting to refresh token...');
         // Attempt to refresh token
         await apiClient.post('/auth/refresh');
+        console.log('Token refreshed successfully, retrying original request');
         // Retry the original request
         return apiClient(originalRequest);
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         // Refresh failed, redirect to login
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
@@ -50,7 +68,6 @@ apiClient.interceptors.response.use(
     }
 
     // Handle other errors
-    console.error('Response error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );

@@ -211,9 +211,9 @@ def clear_auth_cookie(response: Response) -> None:
     )
 
 
-async def get_current_user_from_request(request: Request) -> TokenData:
+async def get_current_user_from_cookie(request: Request) -> TokenData:
     """
-    Get current user from request state (set by middleware)
+    Get current user from request state (set by middleware) or from cookies
     
     Args:
         request: FastAPI request object
@@ -222,16 +222,61 @@ async def get_current_user_from_request(request: Request) -> TokenData:
         TokenData object with user information
         
     Raises:
-        HTTPException: If user not found in request state
+        HTTPException: If user not found in request state or cookies
     """
-    if not hasattr(request.state, 'current_user'):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # First try to get from request state (set by middleware)
+    if hasattr(request.state, 'current_user'):
+        return request.state.current_user
     
-    return request.state.current_user
+    # Fallback: try to get token from cookie and verify it
+    token = get_token_from_cookie(request)
+    print(f"DEBUG: get_current_user_from_request - token from cookie: {token}")
+    if token:
+        try:
+            result = verify_token(token)
+            print(f"DEBUG: Token verification successful: {result}")
+            return result
+        except HTTPException as e:
+            print(f"DEBUG: Token verification failed: {e}")
+            pass  # Will fall through to the error below
+    
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+async def get_user_from_cookie(request: Request) -> TokenData:
+    """
+    Get current user from cookies without triggering FastAPI security detection
+    
+    Args:
+        request: FastAPI request object
+        
+    Returns:
+        TokenData object with user information
+        
+    Raises:
+        HTTPException: If user not found in cookies
+    """
+    # Try to get token from cookie
+    token = get_token_from_cookie(request)
+    print(f"DEBUG: get_user_from_cookie - token from cookie: {token}")
+    if token:
+        try:
+            result = verify_token(token)
+            print(f"DEBUG: Token verification successful: {result}")
+            return result
+        except HTTPException as e:
+            print(f"DEBUG: Token verification failed: {e}")
+            pass  # Will fall through to the error below
+    
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 async def get_current_active_user(current_user: TokenData = Depends(get_current_user)) -> TokenData:

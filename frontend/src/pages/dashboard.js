@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { useTask } from '../context/TaskContext';
@@ -10,7 +10,7 @@ import ErrorMessage from '../components/ErrorMessage';
 import { TASK_STATUS_OPTIONS } from '../constants';
 
 const DashboardPage = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { 
     statistics, 
     fetchStatistics, 
@@ -19,9 +19,19 @@ const DashboardPage = () => {
     clearError 
   } = useTask();
 
+  const fetchStats = useCallback(async () => {
+    if (isAuthenticated && !authLoading) {
+      try {
+        await fetchStatistics();
+      } catch (error) {
+        console.error('Failed to fetch statistics:', error);
+      }
+    }
+  }, [isAuthenticated, authLoading, fetchStatistics]);
+
   useEffect(() => {
-    fetchStatistics();
-  }, [fetchStatistics]);
+    fetchStats();
+  }, [fetchStats]);
 
   const StatCard = ({ title, value, color = 'gray', icon }) => (
     <Card className="p-6">
@@ -51,7 +61,7 @@ const DashboardPage = () => {
     </Card>
   );
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <MainLayout>
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">

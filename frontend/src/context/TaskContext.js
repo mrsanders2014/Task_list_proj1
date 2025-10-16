@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import taskService from '../services/taskService';
 
 // Initial state
@@ -224,7 +224,7 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  const fetchStatistics = async () => {
+  const fetchStatistics = useCallback(async () => {
     try {
       setLoading(true);
       const statistics = await taskService.getTaskStatistics();
@@ -234,7 +234,7 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  };
+  }, []);
 
   const setFilters = (filters) => {
     dispatch({ type: TASK_ACTIONS.SET_FILTERS, payload: filters });

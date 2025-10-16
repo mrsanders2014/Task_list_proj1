@@ -2,7 +2,7 @@
 Authentication API endpoints for JWT token management.
 """
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, status, Depends, Response
+from fastapi import APIRouter, HTTPException, status, Depends, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
 from backend.src.models.beanie_user import BeanieUser
@@ -203,26 +203,57 @@ async def login_form(form_data: OAuth2PasswordRequestForm = Depends(), response:
 
 
 @router.get("/me", response_model=UserResponseSchema)
-async def get_current_user_info(current_user: TokenData = Depends(get_current_user)):
+async def get_current_user_info(request: Request):
     """
     Get current authenticated user information.
 
     Args:
-        current_user: Current authenticated user from JWT token
+        request: FastAPI request object
 
     Returns:
         Current user information
     """
-    # Find user by username from token
-    user = await BeanieUser.find_one(BeanieUser.username == current_user.username)
+    from backend.src.bus_rules.auth import verify_token
     
-    if not user:
+    # Try to get token from Authorization header first
+    authorization = request.headers.get("Authorization")
+    token = None
+    
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+    else:
+        # Fall back to cookie
+        token = request.cookies.get("access_token")
+    
+    if not token:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
-    return user.to_response()
+    try:
+        # Verify the token
+        token_data = verify_token(token)
+        
+        # Find user by username from token
+        user = await BeanieUser.find_one(BeanieUser.username == token_data.username)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        return user.to_response()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
 
 
 @router.post("/refresh", response_model=UserResponseSchema)

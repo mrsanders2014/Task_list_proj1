@@ -36,6 +36,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             "/docs",
             "/redoc",
             "/openapi.json",
+            "/health",
             "/auth/register",
             "/auth/login",
             "/auth/login-form"
@@ -50,41 +51,59 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         # Get the request path
         path = request.url.path
         
+        print(f"MIDDLEWARE: Processing request for path: {path}")
+        logger.info("Processing request for path: %s", path)
+        
         # Skip authentication for excluded paths
         if any(path.startswith(excluded) for excluded in self.excluded_paths):
+            logger.info("Path %s is excluded from auth", path)
             response = await call_next(request)
             return response
         
         # Check if the path requires authentication
-        requires_auth = any(path.startswith(protected) for protected in self.protected_paths)
+        # Special case for /auth/me which should be protected
+        if path == "/auth/me":
+            requires_auth = True
+        else:
+            requires_auth = any(path.startswith(protected) for protected in self.protected_paths)
+        logger.info("Path %s requires auth: %s (protected_paths: %s)", path, requires_auth, self.protected_paths)
         
         if requires_auth:
-            # Extract token from Authorization header
+            # Extract token from Authorization header or cookie
             authorization = request.headers.get("Authorization")
+            cookie_token = request.cookies.get("access_token")
             
-            if not authorization:
+            logger.info("Auth check for path %s: auth_header=%s, cookie_token=%s, all_cookies=%s", 
+                       path, bool(authorization), bool(cookie_token), dict(request.cookies))
+            
+            token = None
+            
+            # Try Authorization header first
+            if authorization:
+                if not authorization.startswith("Bearer "):
+                    return JSONResponse(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        content={
+                            "detail": "Invalid authorization header format. Expected 'Bearer <token>'",
+                            "error": "invalid_auth_format"
+                        },
+                        headers={"WWW-Authenticate": "Bearer"}
+                    )
+                token = authorization.split(" ")[1]
+            # Fall back to cookie
+            elif cookie_token:
+                token = cookie_token
+            
+            if not token:
+                logger.info("No token found for path %s", path)
                 return JSONResponse(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     content={
-                        "detail": "Authorization header missing",
+                        "detail": "Not authenticated",
                         "error": "authentication_required"
                     },
                     headers={"WWW-Authenticate": "Bearer"}
                 )
-            
-            # Check if it's a Bearer token
-            if not authorization.startswith("Bearer "):
-                return JSONResponse(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={
-                        "detail": "Invalid authorization header format. Expected 'Bearer <token>'",
-                        "error": "invalid_auth_format"
-                    },
-                    headers={"WWW-Authenticate": "Bearer"}
-                )
-            
-            # Extract the token
-            token = authorization.split(" ")[1]
             
             try:
                 # Verify the token

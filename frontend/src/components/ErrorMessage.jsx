@@ -10,14 +10,14 @@ const ErrorMessage = ({
   const variantClasses = {
     error: 'bg-red-50 border-red-200 text-red-800',
     warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    info: 'bg-blue-50 border-blue-200 text-white',
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
     success: 'bg-green-50 border-green-200 text-green-800',
   };
   
   const iconClasses = {
     error: 'text-red-400',
     warning: 'text-yellow-400',
-    info: 'text-white',
+    info: 'text-blue-400',
     success: 'text-green-400',
   };
   
@@ -64,7 +64,7 @@ const ErrorMessage = ({
                     : variant === 'warning'
                     ? 'text-yellow-500 hover:bg-yellow-100 focus:ring-yellow-600'
                     : variant === 'info'
-                    ? 'text-white hover:bg-blue-100 focus:ring-blue-600'
+                    ? 'text-blue-500 hover:bg-blue-100 focus:ring-blue-600'
                     : 'text-green-500 hover:bg-green-100 focus:ring-green-600'
                 }`}
               >

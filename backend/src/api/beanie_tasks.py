@@ -4,7 +4,7 @@ Beanie Task API endpoints for FastAPI application.
 # pylint: disable=no-member
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, status, Query, Depends
+from fastapi import APIRouter, HTTPException, status, Query, Depends, Request
 
 from backend.src.models.beanie_task import BeanieTask, Label, TaskMgmtDetails
 from backend.src.models.beanie_user import BeanieUser
@@ -15,13 +15,13 @@ from backend.src.api.schemas import (
     TaskStatusUpdateSchema,
     TaskStatisticsSchema
 )
-from backend.src.bus_rules.auth import get_current_user, TokenData
+from backend.src.bus_rules.auth import get_user_from_cookie, TokenData
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 @router.post("/", response_model=TaskResponseSchema, status_code=status.HTTP_201_CREATED)
-async def create_task(task_data: TaskCreateSchema, current_user: TokenData = Depends(get_current_user)):
+async def create_task(task_data: TaskCreateSchema, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Create a new task.
     
@@ -97,7 +97,7 @@ async def get_tasks(
     overdue_only: bool = Query(False, description="Show only overdue tasks"),
     skip: int = Query(0, ge=0, description="Number of tasks to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of tasks to return"),
-    _current_user: TokenData = Depends(get_current_user)
+    current_user: TokenData = Depends(get_user_from_cookie)
 ):
     """
     Retrieve tasks with optional filtering and pagination.
@@ -159,7 +159,7 @@ async def get_tasks(
 
 
 @router.get("/{task_id}", response_model=TaskResponseSchema)
-async def get_task(task_id: str, current_user: TokenData = Depends(get_current_user)):
+async def get_task(task_id: str, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Retrieve a specific task by ID.
     
@@ -192,7 +192,7 @@ async def get_task(task_id: str, current_user: TokenData = Depends(get_current_u
 
 
 @router.put("/{task_id}", response_model=TaskResponseSchema)
-async def update_task(task_id: str, task_data: TaskUpdateSchema, current_user: TokenData = Depends(get_current_user)):
+async def update_task(task_id: str, task_data: TaskUpdateSchema, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Update an existing task.
     
@@ -263,7 +263,7 @@ async def update_task(task_id: str, task_data: TaskUpdateSchema, current_user: T
 
 
 @router.patch("/{task_id}/status", response_model=TaskResponseSchema)
-async def update_task_status(task_id: str, status_data: TaskStatusUpdateSchema, current_user: TokenData = Depends(get_current_user)):
+async def update_task_status(task_id: str, status_data: TaskStatusUpdateSchema, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Update task status.
     
@@ -308,7 +308,7 @@ async def update_task_status(task_id: str, status_data: TaskStatusUpdateSchema, 
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_task(task_id: str, current_user: TokenData = Depends(get_current_user)):
+async def delete_task(task_id: str, current_user: TokenData = Depends(get_user_from_cookie)):
     """
     Delete a task.
     
@@ -341,7 +341,7 @@ async def delete_task(task_id: str, current_user: TokenData = Depends(get_curren
 async def get_user_tasks(
     user_id: str,
     task_status: Optional[str] = Query(None, description="Filter by task status"),
-    _current_user: TokenData = Depends(get_current_user),
+    current_user: TokenData = Depends(get_user_from_cookie),
     skip: int = Query(0, ge=0, description="Number of tasks to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of tasks to return")
 ):
@@ -389,7 +389,7 @@ async def get_user_tasks(
 
 
 @router.get("/statistics/overview", response_model=TaskStatisticsSchema)
-async def get_task_statistics(current_user: TokenData = Depends(get_current_user)):
+async def get_task_statistics(request: Request):
     """
     Get task statistics overview.
     
@@ -399,6 +399,28 @@ async def get_task_statistics(current_user: TokenData = Depends(get_current_user
     Raises:
         HTTPException: If statistics retrieval fails
     """
+    # Manually extract user from cookie
+    from backend.src.bus_rules.auth import get_token_from_cookie, verify_token
+    
+    token = get_token_from_cookie(request)
+    print(f"DEBUG: get_task_statistics - token from cookie: {token}")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    try:
+        current_user = verify_token(token)
+        print(f"DEBUG: get_task_statistics called with user: {current_user}")
+    except HTTPException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+    
     try:
         # Get total tasks
         total_tasks = await BeanieTask.count()
@@ -414,16 +436,16 @@ async def get_task_statistics(current_user: TokenData = Depends(get_current_user
             BeanieTask.task_mgmt.duedate < datetime.now()  # type: ignore[attr-defined]
         ).count()
         
-        # Get high priority tasks (priority >= 8)
-        high_priority_count = await BeanieTask.find(
-            BeanieTask.task_mgmt.priority >= 8  # type: ignore[attr-defined]
-        ).count()
-        
         return {
-            "total_tasks": total_tasks,
-            "tasks_by_status": status_counts,
-            "overdue_tasks": overdue_count,
-            "high_priority_tasks": high_priority_count
+            "total": total_tasks,
+            "Created": status_counts.get("Created", 0),
+            "Started": status_counts.get("Started", 0),
+            "InProcess": status_counts.get("InProcess", 0),
+            "Modified": status_counts.get("Modified", 0),
+            "Scheduled": status_counts.get("Scheduled", 0),
+            "Complete": status_counts.get("Complete", 0),
+            "Deleted": status_counts.get("Deleted", 0),
+            "overdue": overdue_count
         }
         
     except Exception as e:
