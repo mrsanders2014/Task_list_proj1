@@ -82,7 +82,10 @@ const TaskCard = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onEdit?.(task)}
+            onClick={() => {
+              console.log('Edit button clicked for task:', task);
+              onEdit?.(task);
+            }}
           >
             Edit
           </Button>

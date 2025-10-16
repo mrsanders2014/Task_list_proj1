@@ -63,7 +63,7 @@ async def create_task(task_data: TaskCreateSchema, current_user: TokenData = Dep
         # Create labels if provided
         labels = []
         if task_data.labels:
-            labels = [Label(name=label["name"], color=label.get("color", "#808080")) 
+            labels = [Label(name=label.name, color=label.color) 
                      for label in task_data.labels]
         
         # Create new task
@@ -127,13 +127,22 @@ async def get_tasks(
         HTTPException: If retrieval fails
     """
     try:
-        # Build query
-        query = {}
+        # Get the authenticated user
+        user = await BeanieUser.find_one(BeanieUser.username == current_user.username)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Authenticated user not found"
+            )
+        
+        # Build query - always filter by current user unless user_id is specified
+        query = {"user": user}
         
         if user_id:
-            user = await BeanieUser.get(user_id)
-            if user:
-                query["user"] = user
+            # If user_id is provided, use that instead (for admin purposes)
+            specified_user = await BeanieUser.get(user_id)
+            if specified_user:
+                query["user"] = specified_user
             else:
                 return []  # User not found, return empty list
         
@@ -233,20 +242,20 @@ async def update_task(task_id: str, task_data: TaskUpdateSchema, current_user: T
         
         # Update labels if provided
         if task_data.labels is not None:
-            task.labels = [Label(name=label["name"], color=label.get("color", "#808080")) 
+            task.labels = [Label(name=label.name, color=label.color) 
                           for label in task_data.labels]
         
         # Update task management details if provided
-        if task_data.priority is not None or task_data.due_date is not None or task_data.estimated_time is not None:
+        if task_data.task_mgmt is not None:
             if task.task_mgmt is None:
                 task.task_mgmt = TaskMgmtDetails()
             
-            if task_data.priority is not None:
-                task.task_mgmt.priority = task_data.priority
-            if task_data.due_date is not None:
-                task.task_mgmt.duedate = task_data.due_date
-            if task_data.estimated_time is not None:
-                task.task_mgmt.estimated_time_to_complete = task_data.estimated_time
+            if task_data.task_mgmt.priority is not None:
+                task.task_mgmt.priority = task_data.task_mgmt.priority
+            if task_data.task_mgmt.duedate is not None:
+                task.task_mgmt.duedate = task_data.task_mgmt.duedate
+            if task_data.task_mgmt.estimated_time_to_complete is not None:
+                task.task_mgmt.estimated_time_to_complete = task_data.task_mgmt.estimated_time_to_complete
         
         # Update modification timestamp
         task.lastmoddate = datetime.now()
@@ -430,17 +439,29 @@ async def get_task_statistics(request: Request):
         ) from exc
     
     try:
-        # Get total tasks
-        total_tasks = await BeanieTask.count()
+        # Get the authenticated user
+        user = await BeanieUser.find_one(BeanieUser.username == current_user.username)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Authenticated user not found"
+            )
         
-        # Get tasks by status
+        # Get total tasks for current user
+        total_tasks = await BeanieTask.find(BeanieTask.user == user).count()
+        
+        # Get tasks by status for current user
         status_counts = {}
         for task_status in ["Created", "Started", "InProcess", "Modified", "Scheduled", "Complete", "Deleted"]:
-            count = await BeanieTask.find(BeanieTask.status == task_status).count()
+            count = await BeanieTask.find(
+                BeanieTask.user == user,
+                BeanieTask.status == task_status
+            ).count()
             status_counts[task_status] = count
         
-        # Get overdue tasks
+        # Get overdue tasks for current user
         overdue_count = await BeanieTask.find(
+            BeanieTask.user == user,
             BeanieTask.task_mgmt.duedate < datetime.now()  # type: ignore[attr-defined]
         ).count()
         

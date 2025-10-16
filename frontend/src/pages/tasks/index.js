@@ -249,7 +249,10 @@ const TasksPage = () => {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onEdit={setEditingTask}
+                  onEdit={(task) => {
+                    console.log('TaskCard onEdit called with task:', task);
+                    setEditingTask(task);
+                  }}
                   onDelete={handleDeleteTask}
                 />
               ))

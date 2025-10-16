@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import taskService from '../services/taskService';
 
 // Initial state
@@ -139,6 +139,8 @@ const TaskContext = createContext();
 // Task provider component
 export const TaskProvider = ({ children }) => {
   const [state, dispatch] = useReducer(taskReducer, initialState);
+  const lastFetchTime = useRef(0);
+  const FETCH_COOLDOWN = 1000; // 1 second cooldown between requests
 
   const setLoading = (loading) => {
     dispatch({ type: TASK_ACTIONS.SET_LOADING, payload: loading });
@@ -153,8 +155,15 @@ export const TaskProvider = ({ children }) => {
   };
 
   const fetchTasks = async (customFilters = {}) => {
+    const now = Date.now();
+    if (now - lastFetchTime.current < FETCH_COOLDOWN) {
+      console.log('Rate limiting: skipping fetch tasks request');
+      return state.tasks; // Return cached data
+    }
+    
     try {
       setLoading(true);
+      lastFetchTime.current = now;
       const filters = { ...state.filters, ...customFilters };
       const tasks = await taskService.getTasks(filters);
       dispatch({ type: TASK_ACTIONS.SET_TASKS, payload: tasks });
@@ -162,6 +171,8 @@ export const TaskProvider = ({ children }) => {
     } catch (error) {
       setError(error.message);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -225,16 +236,25 @@ export const TaskProvider = ({ children }) => {
   };
 
   const fetchStatistics = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastFetchTime.current < FETCH_COOLDOWN) {
+      console.log('Rate limiting: skipping fetch request');
+      return state.statistics; // Return cached data
+    }
+    
     try {
       setLoading(true);
+      lastFetchTime.current = now;
       const statistics = await taskService.getTaskStatistics();
       dispatch({ type: TASK_ACTIONS.SET_STATISTICS, payload: statistics });
       return statistics;
     } catch (error) {
       setError(error.message);
       throw error;
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [state.statistics]);
 
   const setFilters = (filters) => {
     dispatch({ type: TASK_ACTIONS.SET_FILTERS, payload: filters });

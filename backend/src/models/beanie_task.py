@@ -3,7 +3,7 @@ Beanie Task Document Model
 Defines the Task document structure using Beanie ODM.
 """
 # pylint: disable=no-member
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, List, ClassVar
 from beanie import Document, Link
 from pydantic import Field, field_validator, BaseModel
@@ -117,7 +117,8 @@ class BeanieTask(Document):
     createdate: datetime = Field(default_factory=datetime.now)
     lastmoddate: datetime = Field(default_factory=datetime.now)
     
-    class Settings:
+    class Settings:  # pylint: disable=too-few-public-methods
+        """Beanie document settings for task collection."""
         name = "tasks"  # Collection name
         indexes = [
             IndexModel([("user", 1)]),
@@ -170,17 +171,39 @@ class BeanieTask(Document):
     
     def to_response(self) -> dict:
         """Convert task to API response format."""
-        return {
-            "id": str(self.id),
-            "user_id": str(self.user.id) if hasattr(self.user, 'id') else None,
-            "title": self.title,
-            "description": self.description,
-            "labels": [{"name": label.name, "color": label.color} for label in self.labels],
-            "task_mgmt": self.task_mgmt.dict() if self.task_mgmt is not None else None,  # type: ignore[attr-defined]
-            "status": self.status,
-            "createdate": self.createdate,
-            "lastmoddate": self.lastmoddate
-        }
+        try:
+            user_id = None
+            if self.user:
+                if hasattr(self.user, 'id'):
+                    user_id = str(self.user.id)
+                elif hasattr(self.user, 'ref'):
+                    user_id = str(self.user.ref.id)
+            
+            return {
+                "id": str(self.id),
+                "user_id": user_id,
+                "title": self.title,
+                "description": self.description,
+                "labels": [{"name": label.name, "color": label.color} for label in self.labels],
+                "task_mgmt": self.task_mgmt.model_dump() if self.task_mgmt is not None else None,  # type: ignore[attr-defined]
+                "status": self.status,
+                "createdate": self.createdate,
+                "lastmoddate": self.lastmoddate
+            }
+        except (AttributeError, TypeError, ValueError) as e:
+            # Fallback response if there's an error
+            return {
+                "id": str(self.id),
+                "user_id": None,
+                "title": self.title,
+                "description": self.description,
+                "labels": [],
+                "task_mgmt": None,
+                "status": self.status,
+                "createdate": self.createdate,
+                "lastmoddate": self.lastmoddate,
+                "error": str(e)
+            }
     
     def __str__(self) -> str:
         """String representation of Task."""

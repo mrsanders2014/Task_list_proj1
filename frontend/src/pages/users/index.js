@@ -223,7 +223,10 @@ const UsersPage = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setEditingUser(user)}
+                          onClick={() => {
+                            console.log('Edit user button clicked for user:', user);
+                            setEditingUser(user);
+                          }}
                         >
                           Edit
                         </Button>

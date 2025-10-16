@@ -74,8 +74,8 @@ export const API_ENDPOINTS = {
     REFRESH: '/auth/refresh',
   },
   TASKS: {
-    LIST: '/tasks',
-    CREATE: '/tasks',
+    LIST: '/tasks/',
+    CREATE: '/tasks/',
     DETAIL: (id) => `/tasks/${id}`,
     UPDATE: (id) => `/tasks/${id}`,
     DELETE: (id) => `/tasks/${id}`,
@@ -84,8 +84,8 @@ export const API_ENDPOINTS = {
     USER_TASKS: (userId) => `/tasks/user/${userId}`,
   },
   USERS: {
-    LIST: '/users',
-    CREATE: '/users',
+    LIST: '/users/',
+    CREATE: '/users/',
     DETAIL: (id) => `/users/${id}`,
     UPDATE: (id) => `/users/${id}`,
     DELETE: (id) => `/users/${id}`,
