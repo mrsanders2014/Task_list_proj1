@@ -90,12 +90,18 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const sessionTimeoutRef = useRef(null);
+  const authCheckInProgressRef = useRef(false);
   const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
 
-  // Check authentication status on mount
+  // Check authentication status on mount with delay to prevent flickering
   useEffect(() => {
-    console.log('AuthContext: Component mounted, checking auth status');
-    checkAuthStatus();
+    console.log('AuthContext: Component mounted, scheduling auth check');
+    const timer = setTimeout(() => {
+      console.log('AuthContext: Running delayed auth check');
+      checkAuthStatus();
+    }, 1000); // 1 second delay to let everything stabilize
+    
+    return () => clearTimeout(timer);
   }, []); // Empty dependency array to run only once
 
   // Session timeout management
@@ -145,7 +151,14 @@ export const AuthProvider = ({ children }) => {
   }, [state.isAuthenticated, resetSessionTimeout]);
 
   const checkAuthStatus = useCallback(async () => {
+    // Prevent multiple simultaneous authentication checks
+    if (authCheckInProgressRef.current) {
+      console.log('AuthContext: Authentication check already in progress, skipping');
+      return;
+    }
+    
     try {
+      authCheckInProgressRef.current = true;
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       
       // Check if we have any cookies or localStorage token
@@ -153,12 +166,10 @@ export const AuthProvider = ({ children }) => {
         const hasAuthCookie = document.cookie.includes('access_token=');
         const hasLocalStorageToken = localStorage.getItem('access_token');
         
+        // Reduced logging to prevent console spam
         console.log('AuthContext: Checking authentication:', {
           hasAuthCookie,
-          hasLocalStorageToken: !!hasLocalStorageToken,
-          cookies: document.cookie,
-          cookieLength: document.cookie.length,
-          allCookies: document.cookie.split(';').map(c => c.trim())
+          hasLocalStorageToken: !!hasLocalStorageToken
         });
         
         if (!hasAuthCookie && !hasLocalStorageToken) {
@@ -169,6 +180,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       console.log('AuthContext: Getting current user...');
+      console.log('AuthContext: About to call authService.getCurrentUser()');
       const user = await authService.getCurrentUser();
       console.log('AuthContext: Current user retrieved:', user);
       dispatch({ type: AUTH_ACTIONS.SET_USER, payload: user });
@@ -177,6 +189,7 @@ export const AuthProvider = ({ children }) => {
       // Don't treat this as a login failure, just clear the user state
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
     } finally {
+      authCheckInProgressRef.current = false;
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
     }
   }, []); // Empty dependency array to prevent re-creation
@@ -188,14 +201,9 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: user });
       console.log('AuthContext: Login successful, session timeout will be set automatically');
       
-      // Check if cookie was set after login
+      // Reduced logging to prevent console spam
       if (typeof document !== 'undefined') {
-        console.log('AuthContext: Cookies after login:', {
-          cookies: document.cookie,
-          cookieLength: document.cookie.length,
-          allCookies: document.cookie.split(';').map(c => c.trim()),
-          hasAccessToken: document.cookie.includes('access_token=')
-        });
+        console.log('AuthContext: Login successful, token stored');
       }
       
       return user;

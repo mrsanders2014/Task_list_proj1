@@ -82,22 +82,28 @@ class AuthService {
    */
   async getCurrentUser() {
     try {
+      console.log('AuthService: getCurrentUser called');
       // Check if we have a token in localStorage and add it to the request
       const token = localStorage.getItem('access_token');
       if (token) {
         console.log('AuthService: Using token from localStorage for getCurrentUser');
+        console.log('AuthService: About to make API call to /auth/me with token');
         const response = await apiClient.get(API_ENDPOINTS.AUTH.ME, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
+        console.log('AuthService: getCurrentUser response received:', response.data);
         return response.data;
       } else {
-        // Try without token (rely on cookies)
+        console.log('AuthService: No token in localStorage, trying with cookies');
+        console.log('AuthService: About to make API call to /auth/me without token');
         const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
+        console.log('AuthService: getCurrentUser response received:', response.data);
         return response.data;
       }
     } catch (error) {
+      console.error('AuthService: Error in getCurrentUser:', error);
       throw this.handleError(error);
     }
   }

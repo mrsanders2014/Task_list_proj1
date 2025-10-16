@@ -157,13 +157,15 @@ export const TaskProvider = ({ children }) => {
   }, []);
 
   const fetchTasks = useCallback(async (customFilters = {}, forceRefresh = false) => {
+    console.log('TaskContext: fetchTasks called with:', { customFilters, forceRefresh });
     const now = Date.now();
     if (!forceRefresh && now - lastFetchTime.current < FETCH_COOLDOWN) {
-      console.log('Rate limiting: skipping fetch tasks request');
+      console.log('TaskContext: Rate limiting: skipping fetch tasks request');
       return state.tasks; // Return cached data
     }
     
     try {
+      console.log('TaskContext: Setting loading to true for tasks');
       setLoading(true);
       lastFetchTime.current = now;
       const filters = { ...state.filters, ...customFilters };
@@ -185,9 +187,10 @@ export const TaskProvider = ({ children }) => {
       // Return empty array as fallback
       return [];
     } finally {
+      console.log('TaskContext: Setting loading to false for tasks');
       setLoading(false);
     }
-  }, [state.filters]); // Remove state.tasks dependency to avoid infinite re-renders
+  }, []); // Remove all dependencies to prevent infinite re-renders
 
   const fetchTask = useCallback(async (taskId) => {
     try {
@@ -252,27 +255,30 @@ export const TaskProvider = ({ children }) => {
   }, []);
 
   const fetchStatistics = useCallback(async () => {
+    console.log('TaskContext: fetchStatistics called');
     const now = Date.now();
     if (now - lastFetchTime.current < FETCH_COOLDOWN) {
-      console.log('Rate limiting: skipping fetch request');
+      console.log('TaskContext: Rate limiting: skipping fetch request');
       return state.statistics; // Return cached data
     }
     
     try {
+      console.log('TaskContext: Setting loading to true for statistics');
       setLoading(true);
       lastFetchTime.current = now;
-      console.log('Fetching task statistics...');
+      console.log('TaskContext: About to call taskService.getTaskStatistics()');
       const statistics = await taskService.getTaskStatistics();
-      console.log('Statistics fetched successfully:', statistics);
+      console.log('TaskContext: Statistics fetched successfully:', statistics);
       dispatch({ type: TASK_ACTIONS.SET_STATISTICS, payload: statistics });
       return statistics;
     } catch (error) {
-      console.error('Error fetching statistics:', error);
+      console.error('TaskContext: Error fetching statistics:', error);
       setError(error.message);
       // Don't throw the error to prevent the dashboard from crashing
       // Return null as fallback
       return null;
     } finally {
+      console.log('TaskContext: Setting loading to false for statistics');
       setLoading(false);
     }
   }, []); // Remove state.statistics dependency to prevent unnecessary re-renders

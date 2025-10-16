@@ -46,35 +46,40 @@ const DashboardPage = () => {
     }
   }, [isAuthenticated, authLoading, router]);
 
-  const fetchStats = useCallback(async () => {
+  // Fetch dashboard data when user is authenticated - SIMPLIFIED APPROACH
+  useEffect(() => {
     if (isAuthenticated && !authLoading && user && !hasFetchedData) {
-      try {
-        console.log('Fetching dashboard data for user:', user.username);
-        setHasFetchedData(true);
-        await Promise.all([
-          fetchStatistics(),
-          fetchTasks({}, true) // Fetch recent tasks
-        ]);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-        setHasFetchedData(false); // Reset on error to allow retry
-      }
+      console.log('Dashboard: Starting data fetch for user:', user.username);
+      setHasFetchedData(true);
+      
+      const fetchDataSequentially = async () => {
+        try {
+          console.log('Dashboard: Step 1 - Fetching statistics...');
+          await fetchStatistics();
+          console.log('Dashboard: Step 1 - Statistics fetched successfully');
+          
+          console.log('Dashboard: Step 2 - Fetching tasks...');
+          await fetchTasks({}, true);
+          console.log('Dashboard: Step 2 - Tasks fetched successfully');
+          
+          console.log('Dashboard: All data fetched successfully');
+        } catch (error) {
+          console.error('Dashboard: Error fetching data:', error);
+          setHasFetchedData(false);
+        }
+      };
+      
+      fetchDataSequentially();
     }
-  }, [isAuthenticated, authLoading, user, hasFetchedData, fetchStatistics, fetchTasks]);
+  }, [isAuthenticated, authLoading, user, hasFetchedData]);
 
-  // Force refresh tasks when user changes (for debugging)
+  // Reset fetched data state when user changes
   useEffect(() => {
     if (user && user.username) {
       console.log('User changed, resetting fetch state for:', user.username);
       setHasFetchedData(false);
     }
   }, [user?.username]);
-
-  useEffect(() => {
-    if (isAuthenticated && !authLoading && user && !hasFetchedData) {
-      fetchStats();
-    }
-  }, [isAuthenticated, authLoading, user, hasFetchedData, fetchStats]);
 
   // Reset fetched data state when user logs out
   useEffect(() => {

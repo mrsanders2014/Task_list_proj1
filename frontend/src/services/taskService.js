@@ -3,6 +3,19 @@ import { API_ENDPOINTS } from '../constants';
 
 class TaskService {
   /**
+   * Get authorization headers with token from localStorage
+   * @returns {Object} Headers object
+   */
+  getAuthHeaders() {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      return {
+        'Authorization': `Bearer ${token}`
+      };
+    }
+    return {};
+  }
+  /**
    * Get all tasks with optional filtering
    * @param {Object} filters - Filter options
    * @returns {Promise<Array>} List of tasks
@@ -26,7 +39,9 @@ class TaskService {
         headers: { 'Content-Type': 'application/json' }
       });
       
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(url, {
+        headers: this.getAuthHeaders()
+      });
       console.log('TaskService: Response received:', {
         status: response.status,
         dataLength: response.data?.length,
@@ -51,7 +66,9 @@ class TaskService {
       console.log('TaskService: Making request to:', url);
       console.log('TaskService: Full URL will be:', `${apiClient.defaults.baseURL}${url}`);
       
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(url, {
+        headers: this.getAuthHeaders()
+      });
       console.log('TaskService: getTask response received:', {
         status: response.status,
         data: response.data
@@ -141,9 +158,14 @@ class TaskService {
    */
   async getTaskStatistics() {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.TASKS.STATISTICS);
+      console.log('TaskService: getTaskStatistics called');
+      const response = await apiClient.get(API_ENDPOINTS.TASKS.STATISTICS, {
+        headers: this.getAuthHeaders()
+      });
+      console.log('TaskService: Statistics response:', response.data);
       return response.data;
     } catch (error) {
+      console.error('TaskService: Error in getTaskStatistics:', error);
       throw this.handleError(error);
     }
   }
