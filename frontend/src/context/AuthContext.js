@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import authService from '../services/authService';
 
 // Initial state
 const initialState = {
   user: null,
   isAuthenticated: false,
-  isLoading: true,
+  isLoading: false, // Start with false to prevent hanging on loading
   error: null,
 };
 
@@ -88,133 +88,76 @@ const AuthContext = createContext();
 
 // Auth provider component
 export const AuthProvider = ({ children }) => {
+  console.log('AuthProvider: Component rendering');
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const sessionTimeoutRef = useRef(null);
-  const authCheckInProgressRef = useRef(false);
-  const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
-
-  // Check authentication status on mount with delay to prevent flickering
+  console.log('AuthProvider: Initial state:', state);
+  
+  // Check authentication status on mount
   useEffect(() => {
-    console.log('AuthContext: Component mounted, scheduling auth check');
-    const timer = setTimeout(() => {
-      console.log('AuthContext: Running delayed auth check');
-      checkAuthStatus();
-    }, 1000); // 1 second delay to let everything stabilize
+    console.log('AuthContext: useEffect triggered - starting authentication check');
+    let isMounted = true;
     
-    return () => clearTimeout(timer);
-  }, []); // Empty dependency array to run only once
-
-  // Session timeout management
-  const resetSessionTimeout = useCallback(() => {
-    if (sessionTimeoutRef.current) {
-      clearTimeout(sessionTimeoutRef.current);
-    }
-    
-    if (state.isAuthenticated) {
-      // Reduced logging to prevent console spam
-      sessionTimeoutRef.current = setTimeout(() => {
-        console.log('AuthContext: Session timeout reached, logging out user');
-        dispatch({ type: AUTH_ACTIONS.LOGOUT });
-        if (typeof window !== 'undefined') {
-          window.location.href = '/';
+    const checkAuthStatus = async () => {
+      try {
+        console.log('AuthContext: Starting authentication check...');
+        if (isMounted) {
+          dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
         }
-      }, SESSION_TIMEOUT);
-    }
-  }, [state.isAuthenticated]);
-
-  // Reset session timeout on user activity
-  useEffect(() => {
-    if (state.isAuthenticated) {
-      const handleUserActivity = () => {
-        // Reduced logging to prevent console spam
-        resetSessionTimeout();
-      };
-
-      // Listen for user activity events
-      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-      events.forEach(event => {
-        document.addEventListener(event, handleUserActivity, true);
-      });
-
-      // Set initial timeout
-      resetSessionTimeout();
-
-      return () => {
-        events.forEach(event => {
-          document.removeEventListener(event, handleUserActivity, true);
-        });
-        if (sessionTimeoutRef.current) {
-          clearTimeout(sessionTimeoutRef.current);
-        }
-      };
-    }
-  }, [state.isAuthenticated, resetSessionTimeout]);
-
-  const checkAuthStatus = useCallback(async () => {
-    // Prevent multiple simultaneous authentication checks
-    if (authCheckInProgressRef.current) {
-      console.log('AuthContext: Authentication check already in progress, skipping');
-      return;
-    }
-    
-    try {
-      authCheckInProgressRef.current = true;
-      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
-      
-      // Check if we have any cookies or localStorage token
-      if (typeof document !== 'undefined') {
-        const hasAuthCookie = document.cookie.includes('access_token=');
-        const hasLocalStorageToken = localStorage.getItem('access_token');
         
-        // Reduced logging to prevent console spam
-        console.log('AuthContext: Checking authentication:', {
-          hasAuthCookie,
-          hasLocalStorageToken: !!hasLocalStorageToken
-        });
+        const user = await authService.getCurrentUser();
         
-        if (!hasAuthCookie && !hasLocalStorageToken) {
-          console.log('AuthContext: No auth cookie or localStorage token found, user not authenticated');
-          dispatch({ type: AUTH_ACTIONS.LOGOUT });
-          return;
+        if (isMounted) {
+          console.log('AuthContext: Authentication successful:', user);
+          dispatch({ type: AUTH_ACTIONS.SET_USER, payload: user });
         }
+      } catch (error) {
+        if (!isMounted) return;
+        
+        // Handle 401 errors gracefully (user not authenticated)
+        if (error.response?.status === 401) {
+          console.log('AuthContext: User not authenticated (401) - this is normal');
+        } else {
+          console.log('AuthContext: Authentication check failed:', error.message);
+        }
+        // Always set loading to false and user to null on error
+        dispatch({ type: AUTH_ACTIONS.SET_USER, payload: null });
+        dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
       }
-      
-      console.log('AuthContext: Getting current user...');
-      console.log('AuthContext: About to call authService.getCurrentUser()');
-      const user = await authService.getCurrentUser();
-      console.log('AuthContext: Current user retrieved:', user);
-      dispatch({ type: AUTH_ACTIONS.SET_USER, payload: user });
-    } catch (error) {
-      console.log('Authentication check failed:', error.message);
-      // Don't treat this as a login failure, just clear the user state
-      dispatch({ type: AUTH_ACTIONS.LOGOUT });
-    } finally {
-      authCheckInProgressRef.current = false;
-      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
-    }
-  }, []); // Empty dependency array to prevent re-creation
+    };
 
-  const login = async (credentials) => {
+    checkAuthStatus();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const login = useCallback(async (credentials) => {
     try {
+      console.log('AuthContext: Starting login process');
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
+      console.log('AuthContext: Calling authService.login');
       const user = await authService.login(credentials);
+      console.log('AuthContext: Login successful, user:', user);
       dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: user });
-      console.log('AuthContext: Login successful, session timeout will be set automatically');
-      
-      // Reduced logging to prevent console spam
-      if (typeof document !== 'undefined') {
-        console.log('AuthContext: Login successful, token stored');
-      }
-      
       return user;
     } catch (error) {
-      console.error('AuthContext: Login failed:', error);
-      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: error.message });
-      throw error;
+      console.error('AuthContext: Login failed - caught error');
+      console.error('AuthContext: Error type:', error.constructor.name);
+      console.error('AuthContext: Error message:', error.message);
+      
+      // Ensure we always have a user-friendly error message
+      const errorMessage = error.message || 'Login failed. Please try again.';
+      console.log('AuthContext: Dispatching LOGIN_FAILURE with message:', errorMessage);
+      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: errorMessage });
+      
+      // Re-throw the error with the user-friendly message
+      console.log('AuthContext: Re-throwing error with message:', errorMessage);
+      throw new Error(errorMessage);
     }
-  };
+  }, []);
 
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
       const user = await authService.register(userData);
@@ -224,46 +167,25 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: error.message });
       throw error;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
-      // Clear session timeout
-      if (sessionTimeoutRef.current) {
-        clearTimeout(sessionTimeoutRef.current);
-        sessionTimeoutRef.current = null;
-      }
-      console.log('AuthContext: Logging out user, clearing session timeout');
       await authService.logout();
     } catch (error) {
       console.warn('Logout error:', error);
     } finally {
-      // Clear localStorage token as well
-      localStorage.removeItem('access_token');
-      console.log('AuthContext: Token removed from localStorage');
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
     }
-  };
+  }, []);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
-  };
+  }, []);
 
-  const setError = (error) => {
+  const setError = useCallback((error) => {
     dispatch({ type: AUTH_ACTIONS.SET_ERROR, payload: error });
-  };
-
-  // Debug authentication state changes (reduced logging)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('AuthContext: State changed:', {
-        isAuthenticated: state.isAuthenticated,
-        isLoading: state.isLoading,
-        user: state.user ? { username: state.user.username, id: state.user.id } : null,
-        error: state.error
-      });
-    }
-  }, [state.isAuthenticated, state.isLoading, state.user, state.error]);
+  }, []);
 
   const value = {
     ...state,
@@ -272,7 +194,6 @@ export const AuthProvider = ({ children }) => {
     logout,
     clearError,
     setError,
-    checkAuthStatus,
   };
 
   return (

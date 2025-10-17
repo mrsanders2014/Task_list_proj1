@@ -7,18 +7,34 @@ const ErrorMessage = ({
   onDismiss,
   className = '',
 }) => {
-  const variantClasses = {
-    error: 'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
-    success: 'bg-green-50 border-green-200 text-green-800',
+  const variantStyles = {
+    error: {
+      backgroundColor: '#fef2f2',
+      borderColor: '#fecaca',
+      color: '#dc2626',
+    },
+    warning: {
+      backgroundColor: '#fffbeb',
+      borderColor: '#fed7aa',
+      color: '#d97706',
+    },
+    info: {
+      backgroundColor: '#eff6ff',
+      borderColor: '#bfdbfe',
+      color: '#2563eb',
+    },
+    success: {
+      backgroundColor: '#f0fdf4',
+      borderColor: '#bbf7d0',
+      color: '#16a34a',
+    },
   };
   
-  const iconClasses = {
-    error: 'text-red-400',
-    warning: 'text-yellow-400',
-    info: 'text-blue-400',
-    success: 'text-green-400',
+  const iconStyles = {
+    error: { color: '#f87171' },
+    warning: { color: '#fbbf24' },
+    info: { color: '#60a5fa' },
+    success: { color: '#4ade80' },
   };
   
   const iconPaths = {
@@ -31,11 +47,20 @@ const ErrorMessage = ({
   if (!message) return null;
   
   return (
-    <div className={`rounded-md border p-4 ${variantClasses[variant]} ${className}`}>
+    <div 
+      className={`rounded-md border p-4 ${className}`}
+      style={{
+        ...variantStyles[variant],
+        border: `1px solid ${variantStyles[variant].borderColor}`,
+        borderRadius: '6px',
+        padding: '16px',
+      }}
+    >
       <div className="flex">
         <div className="flex-shrink-0">
           <svg
-            className={`h-5 w-5 ${iconClasses[variant]}`}
+            className="h-5 w-5"
+            style={iconStyles[variant]}
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
@@ -58,15 +83,19 @@ const ErrorMessage = ({
             <div className="-mx-1.5 -my-1.5">
               <button
                 onClick={onDismiss}
-                className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                  variant === 'error' 
-                    ? 'text-red-500 hover:bg-red-100 focus:ring-red-600' 
-                    : variant === 'warning'
-                    ? 'text-yellow-500 hover:bg-yellow-100 focus:ring-yellow-600'
-                    : variant === 'info'
-                    ? 'text-blue-500 hover:bg-blue-100 focus:ring-blue-600'
-                    : 'text-green-500 hover:bg-green-100 focus:ring-green-600'
-                }`}
+                className="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style={{
+                  color: iconStyles[variant].color,
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = variantStyles[variant].backgroundColor;
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                }}
               >
                 <span className="sr-only">Dismiss</span>
                 <svg

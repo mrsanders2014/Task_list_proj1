@@ -11,13 +11,13 @@ export const TASK_STATUS = {
 
 // Task status options for forms
 export const TASK_STATUS_OPTIONS = [
-  { value: TASK_STATUS.CREATED, label: 'Created', color: 'bg-gray-500' },
-  { value: TASK_STATUS.STARTED, label: 'Started', color: 'bg-blue-500' },
-  { value: TASK_STATUS.IN_PROCESS, label: 'In Process', color: 'bg-yellow-500' },
-  { value: TASK_STATUS.MODIFIED, label: 'Modified', color: 'bg-orange-500' },
-  { value: TASK_STATUS.SCHEDULED, label: 'Scheduled', color: 'bg-purple-500' },
-  { value: TASK_STATUS.COMPLETE, label: 'Complete', color: 'bg-green-500' },
-  { value: TASK_STATUS.DELETED, label: 'Deleted', color: 'bg-red-500' },
+  { value: TASK_STATUS.CREATED, label: 'Created', color: 'bg-gray-600 text-white' },
+  { value: TASK_STATUS.STARTED, label: 'Started', color: 'bg-blue-600 text-white' },
+  { value: TASK_STATUS.IN_PROCESS, label: 'In Process', color: 'bg-yellow-600 text-white' },
+  { value: TASK_STATUS.MODIFIED, label: 'Modified', color: 'bg-orange-600 text-white' },
+  { value: TASK_STATUS.SCHEDULED, label: 'Scheduled', color: 'bg-purple-600 text-white' },
+  { value: TASK_STATUS.COMPLETE, label: 'Complete', color: 'bg-green-600 text-white' },
+  { value: TASK_STATUS.DELETED, label: 'Deleted', color: 'bg-red-600 text-white' },
 ];
 
 // Priority levels

@@ -3,16 +3,12 @@ import { API_ENDPOINTS } from '../constants';
 
 class TaskService {
   /**
-   * Get authorization headers with token from localStorage
+   * Get authorization headers - cookies are handled automatically by axios
    * @returns {Object} Headers object
    */
   getAuthHeaders() {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      return {
-        'Authorization': `Bearer ${token}`
-      };
-    }
+    // Cookies are automatically sent with requests when withCredentials: true
+    // No need to manually add Authorization headers
     return {};
   }
   /**

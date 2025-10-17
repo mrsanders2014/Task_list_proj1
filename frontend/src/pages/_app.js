@@ -1,14 +1,17 @@
 import '../styles/globals.css';
 import { AuthProvider } from '../context/AuthContext';
 import { TaskProvider } from '../context/TaskContext';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 function MyApp({ Component, pageProps }) {
   return (
-    <AuthProvider>
-      <TaskProvider>
-        <Component {...pageProps} />
-      </TaskProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <TaskProvider>
+          <Component {...pageProps} />
+        </TaskProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

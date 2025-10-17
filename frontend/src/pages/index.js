@@ -6,7 +6,7 @@ import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import ErrorMessage from '../components/ErrorMessage';
-import apiClient from '../config/api';
+import { useAuth } from '../context/AuthContext';
 
 // Separate component for the actual login form
 const LoginForm = ({ onSubmit, isSubmitting, loginError, setLoginError }) => {
@@ -16,15 +16,20 @@ const LoginForm = ({ onSubmit, isSubmitting, loginError, setLoginError }) => {
     formState: { errors },
   } = useForm();
 
+  // Debug logging
+  console.log('LoginForm: Rendering with loginError:', loginError);
+
   return (
     <Card>
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         {loginError && (
           <ErrorMessage
             message={loginError}
+            variant="error"
             onDismiss={() => setLoginError('')}
           />
         )}
+        
         
         <Input
           label="Username or Email"
@@ -61,87 +66,86 @@ const LoginForm = ({ onSubmit, isSubmitting, loginError, setLoginError }) => {
 
 const LoginPage = () => {
   const router = useRouter();
+  const { isAuthenticated, isLoading, login, clearError } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Check if user is already authenticated on page load
+  // Debug logging
+  console.log('LoginPage: Current state:', { isAuthenticated, isLoading, loginError, pathname: router.pathname });
+
+  // Redirect to tasks if user becomes authenticated (e.g., from dashboard redirect)
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        console.log('Login page: Token found, redirecting to tasks');
-        router.push('/tasks');
-      }
-    };
-    
-    // Small delay to prevent immediate redirects
-    const timer = setTimeout(checkAuth, 100);
-    return () => clearTimeout(timer);
-  }, [router]);
+    if (isAuthenticated && !isLoading) {
+      console.log('Login page: User authenticated, redirecting to tasks');
+      router.replace('/tasks');
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const onSubmit = async (data) => {
     try {
+      console.log('Login page: onSubmit called with data:', data);
       setIsSubmitting(true);
       setLoginError('');
+      clearError();
+      
+      // Validate input before sending
+      if (!data.username || !data.password) {
+        setLoginError('Please enter both username and password.');
+        return;
+      }
+      
+      if (data.username.trim().length === 0 || data.password.trim().length === 0) {
+        setLoginError('Username and password cannot be empty.');
+        return;
+      }
       
       console.log('Login page: Attempting login with:', data.username);
+      console.log('Login page: Calling login function');
       
-      // Call login endpoint directly
-      const response = await apiClient.post('/auth/login', {
-        username: data.username,
+      await login({
+        username: data.username.trim(),
         password: data.password
       });
       
-      console.log('Login page: Login response:', response.data);
-      
-      // Also get token from login-form endpoint
-      try {
-        const formData = new FormData();
-        formData.append('username', data.username);
-        formData.append('password', data.password);
-        
-        const tokenResponse = await apiClient.post('/auth/login-form', formData, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        });
-        
-        if (tokenResponse.data.access_token) {
-          localStorage.setItem('access_token', tokenResponse.data.access_token);
-          console.log('Login page: Token stored in localStorage');
-        }
-      } catch (tokenError) {
-        console.warn('Login page: Could not get token:', tokenError);
-      }
-      
-      // Redirect to tasks page
+      console.log('Login page: Login successful, redirecting to tasks');
       router.push('/tasks');
       
     } catch (error) {
-      console.error('Login page: Login failed:', error);
-      let errorMessage = 'Login failed';
+      console.error('Login page: Login failed - caught error');
+      console.error('Login page: Error type:', error.constructor.name);
+      console.error('Login page: Error message:', error.message);
       
-      if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === 'string') {
-          errorMessage = error.response.data.detail;
-        } else if (Array.isArray(error.response.data.detail)) {
-          errorMessage = error.response.data.detail.map(err => err.msg).join(', ');
-        }
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-      
+      // Ensure we always have a user-friendly error message
+      const errorMessage = error.message || 'Login failed. Please try again.';
+      console.log('Login page: Setting error message:', errorMessage);
       setLoginError(errorMessage);
+      console.log('Login page: Error message set, loginError state should be:', errorMessage);
     } finally {
+      console.log('Login page: Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   };
 
-  // No loading screen - show form immediately
+  // Show loading state during initial authentication check
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render login form if user is authenticated (will redirect)
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Minimal header without AuthContext */}
+      {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -173,6 +177,13 @@ const LoginPage = () => {
                 create a new account
               </Link>
             </p>
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>Test Credentials:</strong><br />
+                Username: <code className="bg-blue-100 px-1 rounded">testuser</code> or <code className="bg-blue-100 px-1 rounded">testuser2</code><br />
+                Password: <code className="bg-blue-100 px-1 rounded">testpass123</code>
+              </p>
+            </div>
           </div>
           
           <LoginForm 

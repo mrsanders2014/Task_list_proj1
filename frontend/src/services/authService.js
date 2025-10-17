@@ -22,39 +22,49 @@ class AuthService {
    * @returns {Promise<Object>} User data
    */
   async login(credentials) {
+    console.log('AuthService: Login attempt with credentials:', credentials.username);
+    
     try {
-      console.log('AuthService: Login attempt with credentials:', credentials);
-      
-      // Try the regular login endpoint first (sets cookies)
+      // Use the regular login endpoint (sets httpOnly cookies)
+      console.log('AuthService: Making POST request to:', API_ENDPOINTS.AUTH.LOGIN);
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
-      console.log('AuthService: Login successful, response:', response.data);
-      
-      // Also try the login-form endpoint to get the token in response body
-      try {
-        const formData = new FormData();
-        formData.append('username', credentials.username);
-        formData.append('password', credentials.password);
-        
-        const tokenResponse = await apiClient.post('/auth/login-form', formData, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        });
-        
-        console.log('AuthService: Token response:', tokenResponse.data);
-        
-        // Store token in localStorage as backup
-        if (tokenResponse.data.access_token) {
-          localStorage.setItem('access_token', tokenResponse.data.access_token);
-          console.log('AuthService: Token stored in localStorage');
-        }
-      } catch (tokenError) {
-        console.warn('AuthService: Could not get token from login-form endpoint:', tokenError);
-      }
-      
+      console.log('AuthService: Login successful');
       return response.data;
     } catch (error) {
-      console.error('AuthService: Login failed, error:', error);
+      console.error('AuthService: Login failed - caught error');
+      console.error('AuthService: Error type:', error.constructor.name);
+      console.error('AuthService: Error status:', error.response?.status);
+      console.error('AuthService: Error data:', error.response?.data);
+      
+      // Handle specific HTTP error status codes
+      const status = error.response?.status;
+      
+      if (status === 401) {
+        const errorMsg = 'Invalid username or password. Please check your credentials and try again.';
+        console.log('AuthService: Converting 401 to user-friendly error');
+        const friendlyError = new Error(errorMsg);
+        friendlyError.status = 401;
+        throw friendlyError;
+      }
+      
+      if (status === 422) {
+        throw new Error('Please check your input. Username and password are required.');
+      }
+      
+      if (status === 429) {
+        throw new Error('Too many login attempts. Please wait a moment and try again.');
+      }
+      
+      if (status >= 500) {
+        throw new Error('Server error. Please try again later.');
+      }
+      
+      if (!error.response) {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      
+      // Default error handling
+      console.log('AuthService: Using default error handler');
       throw this.handleError(error);
     }
   }
@@ -69,10 +79,6 @@ class AuthService {
     } catch (error) {
       // Even if logout fails on server, we should clear local state
       console.warn('Logout request failed:', error);
-    } finally {
-      // Clear token from localStorage
-      localStorage.removeItem('access_token');
-      console.log('AuthService: Token removed from localStorage');
     }
   }
 
@@ -82,28 +88,21 @@ class AuthService {
    */
   async getCurrentUser() {
     try {
-      console.log('AuthService: getCurrentUser called');
-      // Check if we have a token in localStorage and add it to the request
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        console.log('AuthService: Using token from localStorage for getCurrentUser');
-        console.log('AuthService: About to make API call to /auth/me with token');
-        const response = await apiClient.get(API_ENDPOINTS.AUTH.ME, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        console.log('AuthService: getCurrentUser response received:', response.data);
-        return response.data;
-      } else {
-        console.log('AuthService: No token in localStorage, trying with cookies');
-        console.log('AuthService: About to make API call to /auth/me without token');
-        const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
-        console.log('AuthService: getCurrentUser response received:', response.data);
-        return response.data;
-      }
+      console.log('AuthService: Getting current user...');
+      console.log('AuthService: Making request to:', API_ENDPOINTS.AUTH.ME);
+      const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
+      console.log('AuthService: Current user retrieved:', response.data.username);
+      return response.data;
     } catch (error) {
+      // Handle 401 errors gracefully (user not authenticated)
+      if (error.response?.status === 401) {
+        console.log('AuthService: User not authenticated (401) - this is normal');
+        throw this.handleError(error);
+      }
+      
       console.error('AuthService: Error in getCurrentUser:', error);
+      console.error('AuthService: Error response:', error.response?.data);
+      console.error('AuthService: Error status:', error.response?.status);
       throw this.handleError(error);
     }
   }

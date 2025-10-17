@@ -20,7 +20,7 @@ const StatusBadge = ({ status, size = 'sm', className = '' }) => {
   };
   
   return (
-    <span className={`inline-flex items-center rounded-full font-medium text-white ${sizeClasses[size]} ${statusOption.color} ${className}`}>
+    <span className={`inline-flex items-center rounded-full font-medium ${sizeClasses[size]} ${statusOption.color} ${className}`}>
       {statusOption.label}
     </span>
   );

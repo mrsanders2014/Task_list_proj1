@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import { useTask } from '../context/TaskContext';
-// Removed withAuth import - handling auth manually
 import MainLayout from '../layouts/MainLayout';
 import Card from '../components/Card';
 import TaskCard from '../components/TaskCard';
@@ -15,14 +14,6 @@ const DashboardPage = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   
-  // Debug authentication state (reduced logging to prevent spam)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Dashboard: Auth state:', {
-      isAuthenticated,
-      authLoading,
-      user: user ? { username: user.username, id: user.id } : null
-    });
-  }
   const { 
     statistics, 
     tasks,
@@ -35,32 +26,36 @@ const DashboardPage = () => {
 
   const [hasFetchedData, setHasFetchedData] = useState(false);
 
-  // Removed manual authentication check to prevent infinite loop
+  // Debug logging
+  console.log('Dashboard: Auth state:', { isAuthenticated, authLoading, user: user?.username });
+  console.log('Dashboard: Data state:', { statistics, tasks: tasks?.length, hasFetchedData, isLoading });
 
-  // If not authenticated, redirect to login immediately
+  // Redirect if not authenticated
   useEffect(() => {
-    // Only redirect if we're sure the user is not authenticated and not loading
-    if (!isAuthenticated && !authLoading) {
+    console.log('Dashboard: Redirect useEffect triggered', { authLoading, isAuthenticated, pathname: router.pathname });
+    if (!authLoading && !isAuthenticated) {
       console.log('Dashboard: User not authenticated, redirecting to login');
-      router.push('/'); // Redirect to home page where login form is located
+      router.push('/');
+    } else {
+      console.log('Dashboard: Not redirecting - authLoading:', authLoading, 'isAuthenticated:', isAuthenticated);
     }
   }, [isAuthenticated, authLoading, router]);
 
-  // Fetch dashboard data when user is authenticated - SIMPLIFIED APPROACH
+  // Fetch dashboard data when user is authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading && user && !hasFetchedData) {
       console.log('Dashboard: Starting data fetch for user:', user.username);
       setHasFetchedData(true);
       
-      const fetchDataSequentially = async () => {
+      const fetchData = async () => {
         try {
-          console.log('Dashboard: Step 1 - Fetching statistics...');
+          console.log('Dashboard: Fetching statistics...');
           await fetchStatistics();
-          console.log('Dashboard: Step 1 - Statistics fetched successfully');
+          console.log('Dashboard: Statistics fetched successfully');
           
-          console.log('Dashboard: Step 2 - Fetching tasks...');
+          console.log('Dashboard: Fetching tasks...');
           await fetchTasks({}, true);
-          console.log('Dashboard: Step 2 - Tasks fetched successfully');
+          console.log('Dashboard: Tasks fetched successfully');
           
           console.log('Dashboard: All data fetched successfully');
         } catch (error) {
@@ -69,17 +64,12 @@ const DashboardPage = () => {
         }
       };
       
-      fetchDataSequentially();
+      fetchData();
     }
-  }, [isAuthenticated, authLoading, user, hasFetchedData]);
+  }, [isAuthenticated, authLoading, user, hasFetchedData, fetchStatistics, fetchTasks]);
 
-  // Reset fetched data state when user changes
-  useEffect(() => {
-    if (user && user.username) {
-      console.log('User changed, resetting fetch state for:', user.username);
-      setHasFetchedData(false);
-    }
-  }, [user?.username]);
+  // REMOVED: This was causing hasFetchedData to be reset repeatedly
+  // The user object changes on every render, causing infinite resets
 
   // Reset fetched data state when user logs out
   useEffect(() => {
@@ -116,8 +106,8 @@ const DashboardPage = () => {
     </Card>
   );
 
-  // Show loading only during initial auth check or when fetching data for the first time
-  if (authLoading || (!hasFetchedData && isAuthenticated && user)) {
+  // Show loading during data fetch only (not during auth check)
+  if (isAuthenticated && !hasFetchedData) {
     return (
       <MainLayout>
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -128,7 +118,7 @@ const DashboardPage = () => {
   }
 
   // If not authenticated, show loading while redirecting
-  if (!isAuthenticated && !authLoading) {
+  if (!isAuthenticated) {
     return (
       <MainLayout>
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -282,7 +272,6 @@ const DashboardPage = () => {
                     </div>
                   </div>
                 </Link>
-
               </div>
             </Card.Content>
           </Card>
