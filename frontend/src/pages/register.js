@@ -26,7 +26,7 @@ const RegisterPage = () => {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push('/tasks');
     }
   }, [isAuthenticated, router]);
 
@@ -35,7 +35,7 @@ const RegisterPage = () => {
       setIsSubmitting(true);
       clearError();
       await registerUser(data);
-      router.push('/dashboard');
+      router.push('/tasks');
     } catch (error) {
       console.error('Registration error:', error);
     } finally {

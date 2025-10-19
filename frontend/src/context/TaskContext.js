@@ -183,7 +183,7 @@ export const TaskProvider = ({ children }) => {
         status: error.response?.status
       });
       setError(error.message);
-      // Don't throw the error to prevent the dashboard from crashing
+      // Don't throw the error to prevent the app from crashing
       // Return empty array as fallback
       return [];
     } finally {
@@ -274,7 +274,7 @@ export const TaskProvider = ({ children }) => {
     } catch (error) {
       console.error('TaskContext: Error fetching statistics:', error);
       setError(error.message);
-      // Don't throw the error to prevent the dashboard from crashing
+      // Don't throw the error to prevent the app from crashing
       // Return null as fallback
       return null;
     } finally {

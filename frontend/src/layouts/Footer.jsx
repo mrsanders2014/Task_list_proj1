@@ -20,11 +20,6 @@ const Footer = () => {
             </h4>
             <ul className="space-y-2">
               <li>
-                <a href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
-                  Dashboard
-                </a>
-              </li>
-              <li>
                 <a href="/tasks" className="text-sm text-gray-600 hover:text-gray-900">
                   Tasks
                 </a>

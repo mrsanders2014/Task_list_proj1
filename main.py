@@ -12,7 +12,7 @@ from backend.src.api.beanie_tasks import router as beanie_tasks_router
 from backend.src.api.auth import router as auth_router
 from backend.src.settings import setup
 from backend.src.dbase.beanie_init import initialize_beanie, close_beanie
-from backend.src.bus_rules.middleware import JWTAuthMiddleware, RequestLoggingMiddleware, CORSSecurityMiddleware
+from backend.src.bus_rules.middleware import RequestLoggingMiddleware, CORSSecurityMiddleware
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -30,7 +30,7 @@ app.add_middleware(RequestLoggingMiddleware)
 # Add CORS middleware first
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],  # Frontend URLs
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
@@ -122,13 +122,13 @@ def main():
         print(f"✓ MongoDB URI: {MONGO_URI}")
         print(f"✓ Database Name: {DB_NAME}")
         print("✓ Launching Task Manager FastAPI application...")
-        print("✓ API Documentation available at: http://localhost:8001/docs")
-        print("✓ Alternative docs at: http://localhost:8001/redoc")
+        print("✓ API Documentation available at: http://localhost:8000/docs")
+        print("✓ Alternative docs at: http://localhost:8000/redoc")
         
         uvicorn.run(
             app,
             host="0.0.0.0",
-            port=8001,
+            port=8000,
             reload=True,
             log_level="info"
         )

@@ -73,7 +73,7 @@ const LoginPage = () => {
   // Debug logging
   console.log('LoginPage: Current state:', { isAuthenticated, isLoading, loginError, pathname: router.pathname });
 
-  // Redirect to tasks if user becomes authenticated (e.g., from dashboard redirect)
+  // Redirect to tasks if user becomes authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
       console.log('Login page: User authenticated, redirecting to tasks');
@@ -172,18 +172,16 @@ const LoginPage = () => {
               Or{' '}
               <Link
                 href="/register"
-                className="font-medium text-gray-900 hover:text-gray-700"
+                className="font-medium create-account-link"
+                style={{
+                  color: 'white',
+                  fontSize: '24pt',
+                  fontWeight: 'bold'
+                }}
               >
                 create a new account
               </Link>
             </p>
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-sm text-blue-800">
-                <strong>Test Credentials:</strong><br />
-                Username: <code className="bg-blue-100 px-1 rounded">testuser</code> or <code className="bg-blue-100 px-1 rounded">testuser2</code><br />
-                Password: <code className="bg-blue-100 px-1 rounded">testpass123</code>
-              </p>
-            </div>
           </div>
           
           <LoginForm 

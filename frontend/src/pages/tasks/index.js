@@ -110,13 +110,22 @@ const TasksPage = () => {
   };
 
   return (
-    <MainLayout>
+    <MainLayout showFooter={false}>
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+              <h1 
+                className="font-bold task-manager-title"
+                style={{
+                  color: 'white',
+                  fontSize: '24pt',
+                  fontWeight: 'bold'
+                }}
+              >
+                Task Manager
+              </h1>
               <p className="mt-2 text-gray-600">
                 Manage and organize your tasks
               </p>

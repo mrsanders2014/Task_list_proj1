@@ -92,6 +92,7 @@ export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
   console.log('AuthProvider: Initial state:', state);
   
+  
   // Check authentication status on mount
   useEffect(() => {
     console.log('AuthContext: useEffect triggered - starting authentication check');
@@ -112,6 +113,7 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         if (!isMounted) return;
+        
         
         // Handle 401 errors gracefully (user not authenticated)
         if (error.response?.status === 401) {

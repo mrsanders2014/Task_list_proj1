@@ -76,6 +76,9 @@ async def create_task(task_data: TaskCreateSchema, current_user: TokenData = Dep
             status=task_data.status or "Created"
         )
         
+        # Ensure lastmoddate is set to current datetime
+        task.lastmoddate = datetime.now()
+        
         # Save to database
         await task.insert()
         

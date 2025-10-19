@@ -24,6 +24,20 @@
 
 /* Custom component styles */
 @layer components {
+  /* Task Manager title styling */
+  .task-manager-title {
+    color: white !important;
+    font-size: 24pt !important;
+    font-weight: bold !important;
+  }
+  
+  /* Create account link styling */
+  .create-account-link {
+    color: white !important;
+    font-size: 24pt !important;
+    font-weight: bold !important;
+  }
+  
   /* Line clamp utilities */
   .line-clamp-1 {
     overflow: hidden;

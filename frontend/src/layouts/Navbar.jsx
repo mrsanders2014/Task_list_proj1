@@ -20,7 +20,6 @@ const Navbar = () => {
 
   const navigation = [
     { name: 'Tasks', href: '/tasks' },
-    { name: 'Dashboard', href: '/dashboard' },
   ];
 
   return (
@@ -40,7 +39,7 @@ const Navbar = () => {
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {navigation.map((item) => {
                   const isActive = router.pathname === item.href || 
-                    (item.href !== '/dashboard' && router.pathname.startsWith(item.href));
+                    router.pathname.startsWith(item.href);
                   
                   return (
                     <Link
@@ -133,7 +132,7 @@ const Navbar = () => {
               <>
                 {navigation.map((item) => {
                   const isActive = router.pathname === item.href || 
-                    (item.href !== '/dashboard' && router.pathname.startsWith(item.href));
+                    router.pathname.startsWith(item.href);
                   
                   return (
                     <Link
