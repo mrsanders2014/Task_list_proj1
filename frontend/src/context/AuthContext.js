@@ -88,19 +88,14 @@ const AuthContext = createContext();
 
 // Auth provider component
 export const AuthProvider = ({ children }) => {
-  console.log('AuthProvider: Component rendering');
   const [state, dispatch] = useReducer(authReducer, initialState);
-  console.log('AuthProvider: Initial state:', state);
-  
   
   // Check authentication status on mount
   useEffect(() => {
-    console.log('AuthContext: useEffect triggered - starting authentication check');
     let isMounted = true;
     
     const checkAuthStatus = async () => {
       try {
-        console.log('AuthContext: Starting authentication check...');
         if (isMounted) {
           dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
         }
@@ -108,19 +103,24 @@ export const AuthProvider = ({ children }) => {
         const user = await authService.getCurrentUser();
         
         if (isMounted) {
-          console.log('AuthContext: Authentication successful:', user);
           dispatch({ type: AUTH_ACTIONS.SET_USER, payload: user });
         }
       } catch (error) {
         if (!isMounted) return;
         
-        
-        // Handle 401 errors gracefully (user not authenticated)
-        if (error.response?.status === 401) {
-          console.log('AuthContext: User not authenticated (401) - this is normal');
+        // Handle different types of errors silently
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.code === 'TIMEOUT') {
+          // Don't show timeout errors to user, just silently fail authentication check
+        } else if (error.response?.status === 401) {
+          // User not authenticated - this is normal
+        } else if (error.response?.status >= 500) {
+          // Server error during authentication check
+        } else if (!error.response) {
+          // Network error during authentication check
         } else {
-          console.log('AuthContext: Authentication check failed:', error.message);
+          // Authentication check failed
         }
+        
         // Always set loading to false and user to null on error
         dispatch({ type: AUTH_ACTIONS.SET_USER, payload: null });
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
@@ -136,25 +136,16 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (credentials) => {
     try {
-      console.log('AuthContext: Starting login process');
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
-      console.log('AuthContext: Calling authService.login');
       const user = await authService.login(credentials);
-      console.log('AuthContext: Login successful, user:', user);
       dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: user });
       return user;
     } catch (error) {
-      console.error('AuthContext: Login failed - caught error');
-      console.error('AuthContext: Error type:', error.constructor.name);
-      console.error('AuthContext: Error message:', error.message);
-      
       // Ensure we always have a user-friendly error message
       const errorMessage = error.message || 'Login failed. Please try again.';
-      console.log('AuthContext: Dispatching LOGIN_FAILURE with message:', errorMessage);
       dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: errorMessage });
       
       // Re-throw the error with the user-friendly message
-      console.log('AuthContext: Re-throwing error with message:', errorMessage);
       throw new Error(errorMessage);
     }
   }, []);

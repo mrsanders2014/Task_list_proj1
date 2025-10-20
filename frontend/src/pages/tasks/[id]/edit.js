@@ -39,7 +39,7 @@ const EditTaskPage = () => {
 
   if (!currentTask && !error) {
     return (
-      <MainLayout>
+      <MainLayout showFooter={false}>
         <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
           <Loader size="lg" text="Loading task..." />
         </div>
@@ -49,7 +49,7 @@ const EditTaskPage = () => {
 
   if (!currentTask) {
     return (
-      <MainLayout>
+      <MainLayout showFooter={false}>
         <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900">Task not found</h3>
@@ -68,7 +68,7 @@ const EditTaskPage = () => {
   }
 
   return (
-    <MainLayout>
+    <MainLayout showFooter={false}>
       <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

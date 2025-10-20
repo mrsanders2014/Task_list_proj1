@@ -157,51 +157,35 @@ export const TaskProvider = ({ children }) => {
   }, []);
 
   const fetchTasks = useCallback(async (customFilters = {}, forceRefresh = false) => {
-    console.log('TaskContext: fetchTasks called with:', { customFilters, forceRefresh });
     const now = Date.now();
     if (!forceRefresh && now - lastFetchTime.current < FETCH_COOLDOWN) {
-      console.log('TaskContext: Rate limiting: skipping fetch tasks request');
       return state.tasks; // Return cached data
     }
     
     try {
-      console.log('TaskContext: Setting loading to true for tasks');
       setLoading(true);
       lastFetchTime.current = now;
       const filters = { ...state.filters, ...customFilters };
-      console.log('TaskContext: Fetching tasks with filters:', filters);
-      console.log('TaskContext: About to call taskService.getTasks...');
       const tasks = await taskService.getTasks(filters);
-      console.log('TaskContext: Tasks fetched successfully:', tasks.length, tasks);
       dispatch({ type: TASK_ACTIONS.SET_TASKS, payload: tasks });
       return tasks;
     } catch (error) {
-      console.error('TaskContext: Error fetching tasks:', error);
-      console.error('TaskContext: Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
       setError(error.message);
       // Don't throw the error to prevent the app from crashing
       // Return empty array as fallback
       return [];
     } finally {
-      console.log('TaskContext: Setting loading to false for tasks');
       setLoading(false);
     }
   }, []); // Remove all dependencies to prevent infinite re-renders
 
   const fetchTask = useCallback(async (taskId) => {
     try {
-      console.log('TaskContext: fetchTask called with taskId:', taskId);
       setLoading(true);
       const task = await taskService.getTask(taskId);
-      console.log('TaskContext: fetchTask successful, task:', task);
       dispatch({ type: TASK_ACTIONS.SET_CURRENT_TASK, payload: task });
       return task;
     } catch (error) {
-      console.error('TaskContext: Error in fetchTask:', error);
       setError(error.message);
       throw error;
     }
@@ -210,23 +194,21 @@ export const TaskProvider = ({ children }) => {
   const createTask = useCallback(async (taskData) => {
     // Prevent multiple simultaneous createTask calls
     if (state.isLoading) {
-      console.log('TaskContext: Already loading, ignoring duplicate createTask request');
       throw new Error('Task creation already in progress');
     }
 
     try {
-      console.log('TaskContext: createTask called with data:', taskData);
       setLoading(true);
       const newTask = await taskService.createTask(taskData);
-      console.log('TaskContext: createTask successful, new task:', newTask);
       dispatch({ type: TASK_ACTIONS.ADD_TASK, payload: newTask });
       return newTask;
     } catch (error) {
-      console.error('TaskContext: Error in createTask:', error);
       setError(error.message);
       throw error;
+    } finally {
+      setLoading(false);
     }
-  }, [state.isLoading]);
+  }, [state.isLoading, user]);
 
   const updateTask = useCallback(async (taskId, taskData) => {
     try {
@@ -264,30 +246,23 @@ export const TaskProvider = ({ children }) => {
   }, []);
 
   const fetchStatistics = useCallback(async () => {
-    console.log('TaskContext: fetchStatistics called');
     const now = Date.now();
     if (now - lastFetchTime.current < FETCH_COOLDOWN) {
-      console.log('TaskContext: Rate limiting: skipping fetch request');
       return state.statistics; // Return cached data
     }
     
     try {
-      console.log('TaskContext: Setting loading to true for statistics');
       setLoading(true);
       lastFetchTime.current = now;
-      console.log('TaskContext: About to call taskService.getTaskStatistics()');
       const statistics = await taskService.getTaskStatistics();
-      console.log('TaskContext: Statistics fetched successfully:', statistics);
       dispatch({ type: TASK_ACTIONS.SET_STATISTICS, payload: statistics });
       return statistics;
     } catch (error) {
-      console.error('TaskContext: Error fetching statistics:', error);
       setError(error.message);
       // Don't throw the error to prevent the app from crashing
       // Return null as fallback
       return null;
     } finally {
-      console.log('TaskContext: Setting loading to false for statistics');
       setLoading(false);
     }
   }, []); // Remove state.statistics dependency to prevent unnecessary re-renders

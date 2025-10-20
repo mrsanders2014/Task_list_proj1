@@ -38,26 +38,15 @@ const TasksPage = () => {
   const hasFetchedTasks = useRef(false);
 
   useEffect(() => {
-    console.log('Tasks page: useEffect triggered');
-    console.log('Tasks page: isAuthenticated:', isAuthenticated);
-    console.log('Tasks page: user:', user);
-    console.log('Tasks page: authLoading:', authLoading);
-    console.log('Tasks page: tasks length:', tasks.length);
-    console.log('Tasks page: hasFetchedTasks:', hasFetchedTasks.current);
-    
     // Early return if not authenticated or still loading - don't make any API calls
     if (!isAuthenticated || authLoading || !user || !user.id) {
-      console.log('Tasks page: Not calling fetchTasks - not authenticated or still loading');
       return;
     }
     
     // Only fetch tasks if we haven't fetched yet
     if (!hasFetchedTasks.current) {
-      console.log('Tasks page: Calling fetchTasks...');
       hasFetchedTasks.current = true;
       fetchTasks({}, false); // Don't force refresh to prevent infinite loops
-    } else {
-      console.log('Tasks page: Already fetched tasks, skipping');
     }
   }, [isAuthenticated, user?.id, authLoading]); // Use user.id instead of user object to prevent unnecessary re-renders
 
@@ -73,9 +62,14 @@ const TasksPage = () => {
       setIsSubmitting(true);
       await createTask(taskData);
       setIsCreateModalOpen(false);
-      fetchTasks({}, true); // Force refresh the list
+      // Try to refresh tasks, but don't fail if it doesn't work
+      try {
+        await fetchTasks({}, true); // Force refresh the list
+      } catch (refreshError) {
+        // Still show success to user since task was created
+      }
     } catch (error) {
-      console.error('Error creating task:', error);
+      // Don't close modal on error so user can try again
     } finally {
       setIsSubmitting(false);
     }
@@ -176,7 +170,12 @@ const TasksPage = () => {
               </p>
             </div>
             <Button 
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => {
+                if (isCreateModalOpen) {
+                  return;
+                }
+                setIsCreateModalOpen(true);
+              }}
               className="text-white"
               style={{ 
                 fontSize: '20pt',
@@ -355,10 +354,7 @@ const TasksPage = () => {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onEdit={(task) => {
-                    console.log('TaskCard onEdit called with task:', task);
-                    router.push(`/tasks/${task.id}/edit`);
-                  }}
+                  onEdit={(task) => router.push(`/tasks/${task.id}/edit`)}
                   onDelete={handleDeleteTask}
                 />
               ))

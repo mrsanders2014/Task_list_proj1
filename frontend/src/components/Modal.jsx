@@ -27,7 +27,16 @@ const Modal = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  // Simple effect to handle modal open state
+  useEffect(() => {
+    if (isOpen) {
+      // Modal is open - no additional processing needed
+    }
+  }, [isOpen]);
+
+  if (!isOpen) {
+    return null;
+  }
 
   const sizeClasses = {
     sm: 'max-w-md',
@@ -44,18 +53,46 @@ const Modal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        {/* Overlay */}
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-          onClick={handleOverlayClick}
-        />
-        
-        {/* Modal */}
-        <div
-          className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} ${className}`}
-        >
+    <div 
+      className="modal fixed inset-0 z-50 overflow-y-auto" 
+      style={{ 
+        zIndex: 9999,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}
+    >
+      {/* Overlay */}
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={handleOverlayClick}
+        style={{ 
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)'
+        }}
+      />
+      
+      {/* Modal */}
+      <div
+        className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} ${className}`}
+        style={{ 
+          position: 'relative',
+          zIndex: 10000,
+          maxWidth: '90vw',
+          maxHeight: '90vh',
+          overflow: 'auto'
+        }}
+      >
           {/* Header */}
           {title && (
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -86,7 +123,6 @@ const Modal = ({
             {children}
           </div>
         </div>
-      </div>
     </div>
   );
 };

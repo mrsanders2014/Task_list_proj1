@@ -18,7 +18,6 @@ class TaskService {
    */
   async getTasks(filters = {}) {
     try {
-      console.log('TaskService: getTasks called with filters:', filters);
       const params = new URLSearchParams();
       
       // Add filter parameters
@@ -29,19 +28,9 @@ class TaskService {
       });
 
       const url = `${API_ENDPOINTS.TASKS.LIST}?${params}`;
-      console.log('TaskService: Making request to:', url);
-      console.log('TaskService: Request config:', {
-        withCredentials: true,
-        headers: { 'Content-Type': 'application/json' }
-      });
       
       const response = await apiClient.get(url, {
         headers: this.getAuthHeaders()
-      });
-      console.log('TaskService: Response received:', {
-        status: response.status,
-        dataLength: response.data?.length,
-        data: response.data
       });
       return response.data;
     } catch (error) {
@@ -57,32 +46,13 @@ class TaskService {
    */
   async getTask(taskId) {
     try {
-      console.log('TaskService: getTask called with taskId:', taskId);
       const url = API_ENDPOINTS.TASKS.DETAIL(taskId);
-      console.log('TaskService: Making request to:', url);
-      console.log('TaskService: Full URL will be:', `${apiClient.defaults.baseURL}${url}`);
       
       const response = await apiClient.get(url, {
         headers: this.getAuthHeaders()
       });
-      console.log('TaskService: getTask response received:', {
-        status: response.status,
-        data: response.data
-      });
       return response.data;
     } catch (error) {
-      console.error('TaskService: Error in getTask:', error);
-      console.error('TaskService: Error details:', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          baseURL: error.config?.baseURL
-        }
-      });
       throw this.handleError(error);
     }
   }
@@ -94,20 +64,9 @@ class TaskService {
    */
   async createTask(taskData) {
     try {
-      console.log('TaskService: createTask called with data:', taskData);
       const response = await apiClient.post(API_ENDPOINTS.TASKS.CREATE, taskData);
-      console.log('TaskService: createTask response received:', {
-        status: response.status,
-        data: response.data
-      });
       return response.data;
     } catch (error) {
-      console.error('TaskService: Error in createTask:', error);
-      console.error('TaskService: Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
       throw this.handleError(error);
     }
   }
@@ -165,14 +124,11 @@ class TaskService {
    */
   async getTaskStatistics() {
     try {
-      console.log('TaskService: getTaskStatistics called');
       const response = await apiClient.get(API_ENDPOINTS.TASKS.STATISTICS, {
         headers: this.getAuthHeaders()
       });
-      console.log('TaskService: Statistics response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('TaskService: Error in getTaskStatistics:', error);
       throw this.handleError(error);
     }
   }

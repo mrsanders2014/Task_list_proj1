@@ -16,8 +16,7 @@ const LoginForm = ({ onSubmit, isSubmitting, loginError, setLoginError }) => {
     formState: { errors },
   } = useForm();
 
-  // Debug logging
-  console.log('LoginForm: Rendering with loginError:', loginError);
+  // Login form component
 
   return (
     <Card>
@@ -70,20 +69,15 @@ const LoginPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Debug logging
-  console.log('LoginPage: Current state:', { isAuthenticated, isLoading, loginError, pathname: router.pathname });
-
   // Redirect to tasks if user becomes authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      console.log('Login page: User authenticated, redirecting to tasks');
       router.replace('/tasks');
     }
   }, [isAuthenticated, isLoading, router]);
 
   const onSubmit = async (data) => {
     try {
-      console.log('Login page: onSubmit called with data:', data);
       setIsSubmitting(true);
       setLoginError('');
       clearError();
@@ -99,29 +93,18 @@ const LoginPage = () => {
         return;
       }
       
-      console.log('Login page: Attempting login with:', data.username);
-      console.log('Login page: Calling login function');
-      
       await login({
         username: data.username.trim(),
         password: data.password
       });
       
-      console.log('Login page: Login successful, redirecting to tasks');
       router.push('/tasks');
       
     } catch (error) {
-      console.error('Login page: Login failed - caught error');
-      console.error('Login page: Error type:', error.constructor.name);
-      console.error('Login page: Error message:', error.message);
-      
       // Ensure we always have a user-friendly error message
       const errorMessage = error.message || 'Login failed. Please try again.';
-      console.log('Login page: Setting error message:', errorMessage);
       setLoginError(errorMessage);
-      console.log('Login page: Error message set, loginError state should be:', errorMessage);
     } finally {
-      console.log('Login page: Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   };

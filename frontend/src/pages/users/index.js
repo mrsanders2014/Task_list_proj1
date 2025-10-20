@@ -224,7 +224,7 @@ const UsersPage = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            console.log('Edit user button clicked for user:', user);
+                            // Edit user button clicked
                             setEditingUser(user);
                           }}
                         >

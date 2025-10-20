@@ -118,7 +118,7 @@ const TaskCard = ({
             size="sm"
             className="edit-button"
             onClick={() => {
-              console.log('Edit button clicked for task:', task);
+              // Edit button clicked
               onEdit?.(task);
             }}
             style={{

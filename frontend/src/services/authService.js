@@ -22,26 +22,16 @@ class AuthService {
    * @returns {Promise<Object>} User data
    */
   async login(credentials) {
-    console.log('AuthService: Login attempt with credentials:', credentials.username);
-    
     try {
       // Use the regular login endpoint (sets httpOnly cookies)
-      console.log('AuthService: Making POST request to:', API_ENDPOINTS.AUTH.LOGIN);
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
-      console.log('AuthService: Login successful');
       return response.data;
     } catch (error) {
-      console.error('AuthService: Login failed - caught error');
-      console.error('AuthService: Error type:', error.constructor.name);
-      console.error('AuthService: Error status:', error.response?.status);
-      console.error('AuthService: Error data:', error.response?.data);
-      
       // Handle specific HTTP error status codes
       const status = error.response?.status;
       
       if (status === 401) {
         const errorMsg = 'Invalid username or password. Please check your credentials and try again.';
-        console.log('AuthService: Converting 401 to user-friendly error');
         const friendlyError = new Error(errorMsg);
         friendlyError.status = 401;
         throw friendlyError;
@@ -64,7 +54,6 @@ class AuthService {
       }
       
       // Default error handling
-      console.log('AuthService: Using default error handler');
       throw this.handleError(error);
     }
   }
@@ -78,7 +67,6 @@ class AuthService {
       await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
     } catch (error) {
       // Even if logout fails on server, we should clear local state
-      console.warn('Logout request failed:', error);
     }
   }
 
@@ -88,21 +76,23 @@ class AuthService {
    */
   async getCurrentUser() {
     try {
-      console.log('AuthService: Getting current user...');
-      console.log('AuthService: Making request to:', API_ENDPOINTS.AUTH.ME);
       const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
-      console.log('AuthService: Current user retrieved:', response.data.username);
       return response.data;
     } catch (error) {
+      // Handle timeout errors specifically
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        const timeoutError = new Error('Request timeout. Please check your connection and try again.');
+        timeoutError.code = 'TIMEOUT';
+        throw timeoutError;
+      }
+      
       // Handle 401 errors gracefully (user not authenticated)
       if (error.response?.status === 401) {
-        console.log('AuthService: User not authenticated (401) - this is normal');
+        // Don't try to refresh token here as it might cause infinite loops
+        // The calling code should handle token refresh if needed
         throw this.handleError(error);
       }
       
-      console.error('AuthService: Error in getCurrentUser:', error);
-      console.error('AuthService: Error response:', error.response?.data);
-      console.error('AuthService: Error status:', error.response?.status);
       throw this.handleError(error);
     }
   }
@@ -129,6 +119,17 @@ class AuthService {
       await this.getCurrentUser();
       return true;
     } catch (error) {
+      // If we get a 401, try to refresh the token
+      if (error.response?.status === 401) {
+        try {
+          await this.refreshToken();
+          // Try again after refresh
+          await this.getCurrentUser();
+          return true;
+        } catch (refreshError) {
+          return false;
+        }
+      }
       return false;
     }
   }

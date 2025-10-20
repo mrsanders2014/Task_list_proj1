@@ -58,9 +58,14 @@
     color: white !important;
   }
   
-  /* Tasks page button styling */
-  .tasks-page button {
+  /* Tasks page button styling - exclude modal buttons */
+  .tasks-page button:not(.modal button) {
     color: white !important;
+  }
+  
+  /* Modal button styling - ensure proper contrast */
+  .modal button {
+    color: black !important;
   }
   
   .tasks-page .logout-button {

@@ -16,23 +16,28 @@ export const withAuth = (WrappedComponent, options = {}) => {
   } = options;
 
   return function ProtectedComponent(props) {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, user } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-      if (!isLoading) {
-        if (requireAuth && !isAuthenticated) {
-          // Redirect to login if authentication is required but user is not authenticated
-          router.push(redirectTo);
-        } else if (!requireAuth && isAuthenticated) {
-          // Redirect away from auth pages if user is already authenticated
-          router.push('/tasks');
+      // Add a small delay to ensure auth state is fully loaded
+      const timer = setTimeout(() => {
+        if (!isLoading) {
+          if (requireAuth && !isAuthenticated) {
+            // Redirecting to login - not authenticated
+            router.push(redirectTo);
+          } else if (!requireAuth && isAuthenticated) {
+            // Redirecting to tasks - already authenticated
+            router.push('/tasks');
+          }
         }
-      }
-    }, [isAuthenticated, isLoading, router]);
+      }, 100); // Small delay to ensure auth state is stable
+
+      return () => clearTimeout(timer);
+    }, [isAuthenticated, isLoading, router, user]);
 
     // Show loading component while checking authentication
-    if (isLoading) {
+    if (isLoading || (requireAuth && !user)) {
       return LoadingComponent || (
         <div className="min-h-screen flex items-center justify-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>

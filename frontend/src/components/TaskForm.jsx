@@ -63,41 +63,46 @@ const TaskForm = ({
   const handleFormSubmit = (data) => {
     // Prevent multiple submissions if already loading
     if (isLoading) {
-      console.log('TaskForm: Already submitting, ignoring duplicate request');
       return;
     }
-
-    console.log('TaskForm: handleFormSubmit called with data:', data);
     
-    // Handle due date - if only date is provided, set to end of day
-    let duedate = null;
-    if (data.due_date) {
-      const selectedDate = new Date(data.due_date);
-      // Set to end of day (23:59:59) to ensure it's in the future
-      selectedDate.setHours(23, 59, 59, 999);
-      duedate = selectedDate.toISOString();
+    try {
+      // Handle due date - if only date is provided, set to end of day
+      let duedate = null;
+      if (data.due_date) {
+        const selectedDate = new Date(data.due_date);
+        // Set to end of day (23:59:59) to ensure it's in the future
+        selectedDate.setHours(23, 59, 59, 999);
+        duedate = selectedDate.toISOString();
+      }
+      
+      const formData = {
+        ...data,
+        labels: labels,
+        task_mgmt: {
+          priority: parseInt(data.priority),
+          duedate: duedate,
+          estimated_time_to_complete: data.estimated_time ? parseFloat(data.estimated_time) : null,
+          time_unit: data.time_unit,
+          notify_time: 0,
+          notify_time_units: "hours",
+          notification_wanted: "N",
+        },
+      };
+      
+      onSubmit(formData);
+      
+    } catch (error) {
+      // Don't let the error prevent the form from being submitted
+      // Just log it and continue
     }
-    
-    const formData = {
-      ...data,
-      labels: labels,
-      task_mgmt: {
-        priority: parseInt(data.priority),
-        duedate: duedate,
-        estimated_time_to_complete: data.estimated_time ? parseFloat(data.estimated_time) : null,
-        time_unit: data.time_unit,
-        notify_time: 0,
-        notify_time_units: "hours",
-        notification_wanted: "N",
-      },
-    };
-    
-    console.log('TaskForm: Calling onSubmit with processed data:', formData);
-    onSubmit(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className={`space-y-6 ${className}`}>
+    <form 
+      onSubmit={handleSubmit(handleFormSubmit)}
+      className={`space-y-6 ${className}`}
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="md:col-span-2">
           {isEditMode ? (
@@ -225,7 +230,7 @@ const TaskForm = ({
               onChange={(e) => setNewLabel({ ...newLabel, color: e.target.value })}
               className="w-12 h-10 border border-gray-300 rounded-md cursor-pointer"
             />
-            <Button type="button" onClick={addLabel} variant="outline">
+            <Button type="button" onClick={addLabel} variant="secondary">
               Add
             </Button>
           </div>
@@ -257,7 +262,7 @@ const TaskForm = ({
       <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           onClick={onCancel}
           disabled={isLoading}
         >
@@ -265,6 +270,7 @@ const TaskForm = ({
         </Button>
         <Button
           type="submit"
+          variant="primary"
           loading={isLoading}
         >
           {isEditMode ? 'Accept Changes' : (task ? 'Update Task' : 'Create Task')}
