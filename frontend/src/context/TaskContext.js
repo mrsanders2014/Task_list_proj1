@@ -208,16 +208,25 @@ export const TaskProvider = ({ children }) => {
   }, []); // Empty dependency array since this function doesn't depend on any state
 
   const createTask = useCallback(async (taskData) => {
+    // Prevent multiple simultaneous createTask calls
+    if (state.isLoading) {
+      console.log('TaskContext: Already loading, ignoring duplicate createTask request');
+      throw new Error('Task creation already in progress');
+    }
+
     try {
+      console.log('TaskContext: createTask called with data:', taskData);
       setLoading(true);
       const newTask = await taskService.createTask(taskData);
+      console.log('TaskContext: createTask successful, new task:', newTask);
       dispatch({ type: TASK_ACTIONS.ADD_TASK, payload: newTask });
       return newTask;
     } catch (error) {
+      console.error('TaskContext: Error in createTask:', error);
       setError(error.message);
       throw error;
     }
-  }, []);
+  }, [state.isLoading]);
 
   const updateTask = useCallback(async (taskId, taskData) => {
     try {

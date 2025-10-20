@@ -61,6 +61,14 @@ const TaskForm = ({
   };
 
   const handleFormSubmit = (data) => {
+    // Prevent multiple submissions if already loading
+    if (isLoading) {
+      console.log('TaskForm: Already submitting, ignoring duplicate request');
+      return;
+    }
+
+    console.log('TaskForm: handleFormSubmit called with data:', data);
+    
     // Handle due date - if only date is provided, set to end of day
     let duedate = null;
     if (data.due_date) {
@@ -84,6 +92,7 @@ const TaskForm = ({
       },
     };
     
+    console.log('TaskForm: Calling onSubmit with processed data:', formData);
     onSubmit(formData);
   };
 

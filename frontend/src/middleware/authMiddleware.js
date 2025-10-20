@@ -40,13 +40,27 @@ export const withAuth = (WrappedComponent, options = {}) => {
       );
     }
 
-    // Don't render the component if redirecting
+    // Don't render the component if redirecting or not authenticated
     if (requireAuth && !isAuthenticated) {
-      return null;
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Redirecting to login...</p>
+          </div>
+        </div>
+      );
     }
 
     if (!requireAuth && isAuthenticated) {
-      return null;
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Redirecting...</p>
+          </div>
+        </div>
+      );
     }
 
     return <WrappedComponent {...props} />;
@@ -113,11 +127,25 @@ export const AuthGuard = ({
   }
 
   if (requireAuth && !isAuthenticated) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!requireAuth && isAuthenticated) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   return children;

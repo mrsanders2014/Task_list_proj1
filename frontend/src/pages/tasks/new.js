@@ -13,12 +13,21 @@ const NewTaskPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (taskData) => {
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      console.log('NewTaskPage: Already submitting, ignoring duplicate request');
+      return;
+    }
+
     try {
+      console.log('NewTaskPage: handleSubmit called with data:', taskData);
       setIsSubmitting(true);
-      await createTask(taskData);
+      const result = await createTask(taskData);
+      console.log('NewTaskPage: Task created successfully:', result);
       router.push('/tasks');
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error('NewTaskPage: Error creating task:', error);
+      // Error will be handled by the TaskContext and displayed via the error state
     } finally {
       setIsSubmitting(false);
     }

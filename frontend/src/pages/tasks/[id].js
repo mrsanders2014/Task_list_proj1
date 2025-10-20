@@ -110,13 +110,25 @@ const TaskDetailPage = () => {
             <div className="flex space-x-2">
               <Button
                 variant="outline"
+                className="edit-button"
                 onClick={() => setIsEditing(!isEditing)}
+                style={{
+                  color: '#FFD700 !important',
+                  borderColor: '#FFD700',
+                  backgroundColor: 'transparent'
+                }}
               >
                 {isEditing ? 'Cancel Edit' : 'Edit Task'}
               </Button>
               <Button
                 variant="danger"
+                className="delete-button"
                 onClick={handleDelete}
+                style={{
+                  color: '#FFD700 !important',
+                  borderColor: '#FFD700',
+                  backgroundColor: 'transparent'
+                }}
               >
                 Delete
               </Button>

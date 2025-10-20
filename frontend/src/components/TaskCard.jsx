@@ -14,7 +14,7 @@ const TaskCard = ({
   className = '',
 }) => {
   const formatDate = (dateString) => {
-    if (!dateString) return 'No due date';
+    if (!dateString) return 'No date';
     try {
       return format(new Date(dateString), 'MMM dd, yyyy');
     } catch {
@@ -29,51 +29,85 @@ const TaskCard = ({
 
   return (
     <Card className={`hover:shadow-lg transition-shadow ${className}`}>
-      <div className="flex justify-between items-start mb-3">
+      {/* First line: Task Title */}
+      <div className="flex items-center mb-2">
+        <span 
+          className="text-gray-400 font-medium mr-2"
+          style={{ fontSize: '18pt' }}
+        >
+          Task Title:
+        </span>
         <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
           {task.title}
         </h3>
-        <div className="flex space-x-2 ml-4">
-          <StatusBadge status={task.status} />
-          {task.task_mgmt?.priority && (
-            <PriorityBadge priority={task.task_mgmt.priority} />
+      </div>
+      
+      {/* Second line: Description */}
+      <div className="mb-2">
+        <span className="font-medium text-gray-500">Description: </span>
+        <span className="text-gray-600 text-sm">
+          {task.description || 'No description'}
+        </span>
+      </div>
+      
+      {/* Third line: Priority */}
+      <div className="mb-3">
+        <span className="font-medium text-gray-500">Priority: </span>
+        {task.task_mgmt?.priority ? (
+          <PriorityBadge priority={task.task_mgmt.priority} />
+        ) : (
+          <span className="text-gray-400 text-sm">No priority set</span>
+        )}
+      </div>
+      
+      {/* Fourth line: Status */}
+      <div className="mb-3">
+        <span className="font-medium text-gray-500">Status: </span>
+        <StatusBadge status={task.status} />
+      </div>
+      
+      <div className="mb-3">
+        <div className="flex items-center flex-wrap gap-2">
+          <span className="font-medium text-gray-500">Label(s): </span>
+          {task.labels && task.labels.length > 0 ? (
+            task.labels.map((label, index) => (
+              <span key={index}>
+                <span
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                  style={{ backgroundColor: label.color + '20', color: label.color }}
+                >
+                  {label.name}
+                </span>
+                {index < task.labels.length - 1 && <span className="text-gray-500">, </span>}
+              </span>
+            ))
+          ) : (
+            <span className="text-gray-400 text-sm">No labels</span>
           )}
         </div>
       </div>
       
-      {task.description && (
-        <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-          {task.description}
-        </p>
-      )}
-      
-      <div className="flex flex-wrap gap-2 mb-3">
-        {task.labels?.map((label, index) => (
-          <span
-            key={index}
-            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-            style={{ backgroundColor: label.color + '20', color: label.color }}
-          >
-            {label.name}
-          </span>
-        ))}
-      </div>
-      
-      <div className="flex justify-between items-center text-sm text-gray-500 mb-3">
-        <div>
-          <span className="font-medium">Created:</span> {formatDate(task.createdate)}
-        </div>
-        {task.task_mgmt?.duedate && (
-          <div className={`font-medium ${isOverdue() ? 'text-red-600' : 'text-gray-500'}`}>
-            <span>Due:</span> {formatDate(task.task_mgmt.duedate)}
-            {isOverdue() && <span className="ml-1">(Overdue)</span>}
+      <div className="text-sm text-gray-500 mb-3">
+        <div className="flex items-center justify-start w-full">
+          <div className="flex-1">
+            <span className="font-medium">Due Date: </span>
+            <span>{formatDate(task.task_mgmt?.duedate)}</span>
+            {isOverdue() && <span className="ml-1 text-red-600">(Overdue)</span>}
           </div>
-        )}
+          <div className="flex-1">
+            <span className="font-medium">Last update date: </span>
+            <span>{formatDate(task.lastmoddate)}</span>
+          </div>
+          <div className="flex-1">
+            <span className="font-medium">Created on: </span>
+            <span>{formatDate(task.createdate)}</span>
+          </div>
+        </div>
       </div>
       
       {task.task_mgmt?.estimated_time_to_complete && (
         <div className="text-sm text-gray-500 mb-3">
-          <span className="font-medium">Est. Time:</span> {task.task_mgmt.estimated_time_to_complete} hours
+          <span className="font-medium">Est. Time: </span>{task.task_mgmt.estimated_time_to_complete} hours
         </div>
       )}
       
@@ -82,9 +116,15 @@ const TaskCard = ({
           <Button
             variant="outline"
             size="sm"
+            className="edit-button"
             onClick={() => {
               console.log('Edit button clicked for task:', task);
               onEdit?.(task);
+            }}
+            style={{
+              color: '#FFD700 !important',
+              borderColor: '#FFD700',
+              backgroundColor: 'transparent'
             }}
           >
             Edit
@@ -92,7 +132,13 @@ const TaskCard = ({
           <Button
             variant="danger"
             size="sm"
+            className="delete-button"
             onClick={() => onDelete?.(task)}
+            style={{
+              color: '#FFD700 !important',
+              borderColor: '#FFD700',
+              backgroundColor: 'transparent'
+            }}
           >
             Delete
           </Button>

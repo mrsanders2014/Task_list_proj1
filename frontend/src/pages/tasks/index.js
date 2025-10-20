@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useTask } from '../../context/TaskContext';
 import { useAuth } from '../../context/AuthContext';
@@ -35,6 +35,7 @@ const TasksPage = () => {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasFetchedTasks = useRef(false);
 
   useEffect(() => {
     console.log('Tasks page: useEffect triggered');
@@ -42,18 +43,30 @@ const TasksPage = () => {
     console.log('Tasks page: user:', user);
     console.log('Tasks page: authLoading:', authLoading);
     console.log('Tasks page: tasks length:', tasks.length);
+    console.log('Tasks page: hasFetchedTasks:', hasFetchedTasks.current);
     
-    if (isAuthenticated && user && !authLoading) {
-      console.log('Tasks page: Calling fetchTasks...');
-      fetchTasks({}, true); // Force refresh to ensure we get latest data
-    } else {
-      console.log('Tasks page: Not calling fetchTasks because:', {
-        isAuthenticated,
-        hasUser: !!user,
-        authLoading
-      });
+    // Early return if not authenticated or still loading - don't make any API calls
+    if (!isAuthenticated || authLoading || !user || !user.id) {
+      console.log('Tasks page: Not calling fetchTasks - not authenticated or still loading');
+      return;
     }
-  }, [fetchTasks, isAuthenticated, user, authLoading]);
+    
+    // Only fetch tasks if we haven't fetched yet
+    if (!hasFetchedTasks.current) {
+      console.log('Tasks page: Calling fetchTasks...');
+      hasFetchedTasks.current = true;
+      fetchTasks({}, false); // Don't force refresh to prevent infinite loops
+    } else {
+      console.log('Tasks page: Already fetched tasks, skipping');
+    }
+  }, [isAuthenticated, user?.id, authLoading]); // Use user.id instead of user object to prevent unnecessary re-renders
+
+  // Reset the fetch flag when user changes (for logout/login scenarios)
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      hasFetchedTasks.current = false;
+    }
+  }, [isAuthenticated, user]);
 
   const handleCreateTask = async (taskData) => {
     try {
@@ -109,9 +122,41 @@ const TasksPage = () => {
     }
   };
 
+  // Don't render if not authenticated or still loading
+  if (authLoading) {
+    return (
+      <MainLayout showFooter={false}>
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <MainLayout showFooter={false}>
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900">Please log in to view tasks</h1>
+            <p className="mt-2 text-gray-600">You need to be authenticated to access this page.</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout showFooter={false}>
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div 
+        className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 tasks-page"
+        style={{ 
+          backgroundColor: 'transparent',
+          backgroundImage: 'none'
+        }}
+      >
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
@@ -119,18 +164,27 @@ const TasksPage = () => {
               <h1 
                 className="font-bold task-manager-title"
                 style={{
-                  color: 'white',
+                  color: 'white !important',
                   fontSize: '24pt',
                   fontWeight: 'bold'
                 }}
               >
                 Task Manager
               </h1>
-              <p className="mt-2 text-gray-600">
+              <p className="mt-2 text-white" style={{ fontSize: '20pt', color: 'white !important' }}>
                 Manage and organize your tasks
               </p>
             </div>
-            <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Button 
+              onClick={() => setIsCreateModalOpen(true)}
+              className="text-white"
+              style={{ 
+                fontSize: '20pt',
+                color: 'white !important',
+                backgroundColor: 'transparent',
+                border: '2px solid white'
+              }}
+            >
               Create Task
             </Button>
           </div>
@@ -229,10 +283,27 @@ const TasksPage = () => {
             </div>
             
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={clearFilters}>
+              <Button 
+                variant="outline" 
+                onClick={clearFilters}
+                style={{ 
+                  fontSize: '20pt',
+                  color: 'white !important',
+                  borderColor: 'white',
+                  backgroundColor: 'transparent'
+                }}
+              >
                 Clear Filters
               </Button>
-              <Button onClick={handleSearch}>
+              <Button 
+                onClick={handleSearch}
+                style={{ 
+                  fontSize: '20pt',
+                  color: 'white !important',
+                  backgroundColor: 'transparent',
+                  border: '2px solid white'
+                }}
+              >
                 Apply Filters
               </Button>
             </div>
@@ -241,7 +312,9 @@ const TasksPage = () => {
 
         {/* Tasks List */}
         {isLoading ? (
-          <Loader size="lg" text="Loading tasks..." />
+          <div className="flex justify-center items-center py-8">
+            <div className="text-white text-lg">Loading tasks...</div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tasks.length === 0 ? (
@@ -264,7 +337,15 @@ const TasksPage = () => {
                   Get started by creating a new task.
                 </p>
                 <div className="mt-6">
-                  <Button onClick={() => setIsCreateModalOpen(true)}>
+                  <Button 
+                    onClick={() => setIsCreateModalOpen(true)}
+                    style={{ 
+                      fontSize: '20pt',
+                      color: 'white !important',
+                      backgroundColor: 'transparent',
+                      border: '2px solid white'
+                    }}
+                  >
                     Create Task
                   </Button>
                 </div>
@@ -306,7 +387,13 @@ const TasksPage = () => {
             <Button
               variant="outline"
               onClick={handleLogout}
-              className="text-gray-600 hover:text-gray-800"
+              className="logout-button"
+              style={{ 
+                fontSize: '20pt',
+                color: 'red !important',
+                borderColor: 'red',
+                backgroundColor: 'transparent'
+              }}
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

@@ -38,6 +38,54 @@
     font-weight: bold !important;
   }
   
+  /* Tasks page specific styling */
+  .tasks-page {
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+  
+  .tasks-page * {
+    background-image: none !important;
+  }
+  
+  /* Tasks page header styling */
+  .tasks-page h1,
+  .tasks-page .task-manager-title {
+    color: white !important;
+  }
+  
+  .tasks-page p {
+    color: white !important;
+  }
+  
+  /* Tasks page button styling */
+  .tasks-page button {
+    color: white !important;
+  }
+  
+  .tasks-page .logout-button {
+    color: red !important;
+  }
+  
+  .tasks-page .logout-button:hover {
+    color: darkred !important;
+  }
+  
+  /* Task card edit and delete button styling */
+  .edit-button,
+  .delete-button {
+    color: #FFD700 !important;
+    border-color: #FFD700 !important;
+    background-color: transparent !important;
+  }
+  
+  .edit-button:hover,
+  .delete-button:hover {
+    color: #FFA500 !important;
+    border-color: #FFA500 !important;
+    background-color: rgba(255, 215, 0, 0.1) !important;
+  }
+  
   /* Line clamp utilities */
   .line-clamp-1 {
     overflow: hidden;

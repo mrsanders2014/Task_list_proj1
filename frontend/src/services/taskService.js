@@ -94,9 +94,20 @@ class TaskService {
    */
   async createTask(taskData) {
     try {
+      console.log('TaskService: createTask called with data:', taskData);
       const response = await apiClient.post(API_ENDPOINTS.TASKS.CREATE, taskData);
+      console.log('TaskService: createTask response received:', {
+        status: response.status,
+        data: response.data
+      });
       return response.data;
     } catch (error) {
+      console.error('TaskService: Error in createTask:', error);
+      console.error('TaskService: Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       throw this.handleError(error);
     }
   }

@@ -146,24 +146,53 @@ class AuthService {
       
       let message = 'An error occurred';
       
-      if (typeof data === 'string') {
-        message = data;
-      } else if (data?.detail) {
-        if (typeof data.detail === 'string') {
-          message = data.detail;
-        } else if (Array.isArray(data.detail)) {
-          // Handle validation errors
-          message = data.detail.map(err => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
+      // Handle specific error cases with user-friendly messages
+      if (status === 409) {
+        if (data?.detail && data.detail.includes('username')) {
+          message = 'A user with this username already exists. Please choose a different username.';
+        } else if (data?.detail && data.detail.includes('email')) {
+          message = 'A user with this email already exists. Please use a different email address.';
         } else {
-          message = JSON.stringify(data.detail);
+          message = 'This information is already in use. Please check your details and try again.';
         }
-      } else if (data?.message) {
-        message = data.message;
-      } else if (data) {
-        message = JSON.stringify(data);
+      } else if (status === 400) {
+        if (data?.detail) {
+          if (Array.isArray(data.detail)) {
+            // Handle validation errors
+            message = data.detail.map(err => {
+              const field = err.loc?.join('.') || 'field';
+              return `${field}: ${err.msg}`;
+            }).join(', ');
+          } else if (typeof data.detail === 'string') {
+            message = data.detail;
+          }
+        } else {
+          message = 'Please check your information and try again.';
+        }
+      } else if (status === 422) {
+        message = 'Please check your information and try again.';
+      } else if (status >= 500) {
+        message = 'Server error. Please try again later.';
+      } else {
+        // Handle other error formats
+        if (typeof data === 'string') {
+          message = data;
+        } else if (data?.detail) {
+          if (typeof data.detail === 'string') {
+            message = data.detail;
+          } else if (Array.isArray(data.detail)) {
+            message = data.detail.map(err => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
+          } else {
+            message = JSON.stringify(data.detail);
+          }
+        } else if (data?.message) {
+          message = data.message;
+        } else if (data) {
+          message = JSON.stringify(data);
+        }
       }
       
-      return new Error(`${status}: ${message}`);
+      return new Error(message);
     } else if (error.request) {
       // Request was made but no response received
       return new Error('Network error: Unable to connect to server');
