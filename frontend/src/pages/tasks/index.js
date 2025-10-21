@@ -155,16 +155,6 @@ const TasksPage = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 
-                className="font-bold task-manager-title"
-                style={{
-                  color: 'white !important',
-                  fontSize: '24pt',
-                  fontWeight: 'bold'
-                }}
-              >
-                Task Manager
-              </h1>
               <p className="mt-2 text-white" style={{ fontSize: '20pt', color: 'white !important' }}>
                 Manage and organize your tasks
               </p>

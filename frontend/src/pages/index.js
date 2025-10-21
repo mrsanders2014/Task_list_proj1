@@ -147,6 +147,16 @@ const LoginPage = () => {
       {/* Login form */}
       <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <img
+              src="/logo.svg?v=5"
+              alt="Kevins Chicken, Waffles and Task Management"
+              style={{ width: '140px', height: '140px' }}
+              className="object-contain"
+            />
+          </div>
+          
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               Sign in to your account

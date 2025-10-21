@@ -18,49 +18,30 @@ const Navbar = () => {
     }
   };
 
-  const navigation = [
-    { name: 'Tasks', href: '/tasks' },
-  ];
+  const navigation = [];
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex">
-            {/* Logo */}
-            <div className="flex-shrink-0 flex items-center">
-              <Link href={isAuthenticated ? '/tasks' : '/'} className="text-xl font-bold text-gray-900">
-                Task Manager
-              </Link>
-            </div>
-            
-            {/* Navigation Links */}
-            {isAuthenticated && (
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                {navigation.map((item) => {
-                  const isActive = router.pathname === item.href || 
-                    router.pathname.startsWith(item.href);
-                  
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
-                        isActive
-                          ? 'border-gray-900 text-gray-900'
-                          : 'border-transparent text-gray-700 hover:border-gray-300 hover:text-gray-900'
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+          {/* Left spacer */}
+          <div className="flex-shrink-0 w-32"></div>
+          
+          {/* Centered Logo */}
+          <div className="flex items-center">
+            <span 
+              className="text-xl font-bold"
+              style={{ 
+                fontSize: '24pt', 
+                color: '#ff6b6b' 
+              }}
+            >
+              Task Manager
+            </span>
           </div>
 
           {/* User Menu */}
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+          <div className="flex items-center">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">

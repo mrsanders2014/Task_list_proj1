@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: task_manager_db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: task_manager_prod
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - task_manager_network
+
+  # FastAPI Backend
+  backend:
+    build: .
+    container_name: task_manager_api
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - project_db_url=mongodb://admin:password@mongodb:27017/task_manager_prod?authSource=admin
+      - DATABASE_NAME=task_manager_prod
+      - JWT_SECRET_KEY=your-super-secure-secret-key-here-32-chars-min-change-this-in-production
+      - JWT_ALGORITHM=HS256
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - JWT_COOKIE_NAME=access_token
+      - JWT_COOKIE_SECURE=true
+      - JWT_COOKIE_HTTP_ONLY=true
+      - JWT_COOKIE_SAME_SITE=strict
+      - FRONTEND_URL=http://localhost:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+    networks:
+      - task_manager_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: task_manager_frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - task_manager_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  task_manager_network:
+    driver: bridge
