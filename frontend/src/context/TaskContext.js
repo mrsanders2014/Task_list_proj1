@@ -142,7 +142,7 @@ export const TaskProvider = ({ children }) => {
   const [state, dispatch] = useReducer(taskReducer, initialState);
   const lastFetchTime = useRef(0);
   const FETCH_COOLDOWN = 1000; // 1 second cooldown between requests
-  const { user } = useAuth();
+  const { user, logout, setError: setAuthError } = useAuth();
 
   const setLoading = useCallback((loading) => {
     dispatch({ type: TASK_ACTIONS.SET_LOADING, payload: loading });
@@ -176,6 +176,17 @@ export const TaskProvider = ({ children }) => {
       dispatch({ type: TASK_ACTIONS.SET_TASKS, payload: tasks });
       return tasks;
     } catch (error) {
+      // Handle authentication errors gracefully
+      if (error.code === 'AUTHENTICATION_REQUIRED') {
+        console.log('TaskContext: Authentication required, logging out user');
+        // Set a user-friendly error message in auth context
+        setAuthError('Your session has expired. Please log in again.');
+        // Automatically log out the user
+        await logout();
+        // Set a user-friendly error message
+        setError('Your session has expired. Please log in again.');
+        return [];
+      }
       setError(error.message);
       // Don't throw the error to prevent the app from crashing
       // Return empty array as fallback
@@ -183,7 +194,7 @@ export const TaskProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [user]); // Add user as dependency to re-run when user changes
+  }, [user, logout, setAuthError]); // Add logout and setAuthError as dependencies
 
   const fetchTask = useCallback(async (taskId) => {
     // Don't make API calls if user is not authenticated
@@ -198,10 +209,21 @@ export const TaskProvider = ({ children }) => {
       dispatch({ type: TASK_ACTIONS.SET_CURRENT_TASK, payload: task });
       return task;
     } catch (error) {
+      // Handle authentication errors gracefully
+      if (error.code === 'AUTHENTICATION_REQUIRED') {
+        console.log('TaskContext: Authentication required, logging out user');
+        // Set a user-friendly error message in auth context
+        setAuthError('Your session has expired. Please log in again.');
+        // Automatically log out the user
+        await logout();
+        // Set a user-friendly error message
+        setError('Your session has expired. Please log in again.');
+        return null;
+      }
       setError(error.message);
       throw error;
     }
-  }, [user]); // Add user as dependency
+  }, [user, logout, setAuthError]); // Add logout and setAuthError as dependencies
 
   const createTask = useCallback(async (taskData) => {
     // Don't make API calls if user is not authenticated
@@ -221,12 +243,23 @@ export const TaskProvider = ({ children }) => {
       dispatch({ type: TASK_ACTIONS.ADD_TASK, payload: newTask });
       return newTask;
     } catch (error) {
+      // Handle authentication errors gracefully
+      if (error.code === 'AUTHENTICATION_REQUIRED') {
+        console.log('TaskContext: Authentication required, logging out user');
+        // Set a user-friendly error message in auth context
+        setAuthError('Your session has expired. Please log in again.');
+        // Automatically log out the user
+        await logout();
+        // Set a user-friendly error message
+        setError('Your session has expired. Please log in again.');
+        return null;
+      }
       setError(error.message);
       throw error;
     } finally {
       setLoading(false);
     }
-  }, [state.isLoading, user]);
+  }, [state.isLoading, user, logout, setAuthError]);
 
   const updateTask = useCallback(async (taskId, taskData) => {
     // Don't make API calls if user is not authenticated
@@ -241,10 +274,21 @@ export const TaskProvider = ({ children }) => {
       dispatch({ type: TASK_ACTIONS.UPDATE_TASK, payload: updatedTask });
       return updatedTask;
     } catch (error) {
+      // Handle authentication errors gracefully
+      if (error.code === 'AUTHENTICATION_REQUIRED') {
+        console.log('TaskContext: Authentication required, logging out user');
+        // Set a user-friendly error message in auth context
+        setAuthError('Your session has expired. Please log in again.');
+        // Automatically log out the user
+        await logout();
+        // Set a user-friendly error message
+        setError('Your session has expired. Please log in again.');
+        return null;
+      }
       setError(error.message);
       throw error;
     }
-  }, [user]);
+  }, [user, logout, setAuthError]);
 
   const deleteTask = useCallback(async (taskId) => {
     // Don't make API calls if user is not authenticated
@@ -258,10 +302,21 @@ export const TaskProvider = ({ children }) => {
       await taskService.deleteTask(taskId);
       dispatch({ type: TASK_ACTIONS.DELETE_TASK, payload: taskId });
     } catch (error) {
+      // Handle authentication errors gracefully
+      if (error.code === 'AUTHENTICATION_REQUIRED') {
+        console.log('TaskContext: Authentication required, logging out user');
+        // Set a user-friendly error message in auth context
+        setAuthError('Your session has expired. Please log in again.');
+        // Automatically log out the user
+        await logout();
+        // Set a user-friendly error message
+        setError('Your session has expired. Please log in again.');
+        return;
+      }
       setError(error.message);
       throw error;
     }
-  }, [user]);
+  }, [user, logout, setAuthError]);
 
   const updateTaskStatus = useCallback(async (taskId, status, reason = '') => {
     // Don't make API calls if user is not authenticated
@@ -276,10 +331,21 @@ export const TaskProvider = ({ children }) => {
       dispatch({ type: TASK_ACTIONS.UPDATE_TASK, payload: updatedTask });
       return updatedTask;
     } catch (error) {
+      // Handle authentication errors gracefully
+      if (error.code === 'AUTHENTICATION_REQUIRED') {
+        console.log('TaskContext: Authentication required, logging out user');
+        // Set a user-friendly error message in auth context
+        setAuthError('Your session has expired. Please log in again.');
+        // Automatically log out the user
+        await logout();
+        // Set a user-friendly error message
+        setError('Your session has expired. Please log in again.');
+        return null;
+      }
       setError(error.message);
       throw error;
     }
-  }, [user]);
+  }, [user, logout, setAuthError]);
 
   const fetchStatistics = useCallback(async () => {
     // Don't make API calls if user is not authenticated
@@ -300,6 +366,17 @@ export const TaskProvider = ({ children }) => {
       dispatch({ type: TASK_ACTIONS.SET_STATISTICS, payload: statistics });
       return statistics;
     } catch (error) {
+      // Handle authentication errors gracefully
+      if (error.code === 'AUTHENTICATION_REQUIRED') {
+        console.log('TaskContext: Authentication required, logging out user');
+        // Set a user-friendly error message in auth context
+        setAuthError('Your session has expired. Please log in again.');
+        // Automatically log out the user
+        await logout();
+        // Set a user-friendly error message
+        setError('Your session has expired. Please log in again.');
+        return null;
+      }
       setError(error.message);
       // Don't throw the error to prevent the app from crashing
       // Return null as fallback
@@ -307,7 +384,7 @@ export const TaskProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [user]); // Add user as dependency
+  }, [user, logout, setAuthError]); // Add logout and setAuthError as dependencies
 
   const setFilters = useCallback((filters) => {
     dispatch({ type: TASK_ACTIONS.SET_FILTERS, payload: filters });

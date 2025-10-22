@@ -188,6 +188,14 @@ class TaskService {
         message = JSON.stringify(data);
       }
       
+      // Create a special error for authentication failures
+      if (status === 401) {
+        const authError = new Error('Authentication required. Please log in again.');
+        authError.code = 'AUTHENTICATION_REQUIRED';
+        authError.status = 401;
+        return authError;
+      }
+      
       return new Error(`${status}: ${message}`);
     } else if (error.request) {
       // Request was made but no response received
@@ -199,4 +207,5 @@ class TaskService {
   }
 }
 
-export default new TaskService();
+const taskService = new TaskService();
+export default taskService;

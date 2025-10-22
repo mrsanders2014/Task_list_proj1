@@ -12,7 +12,7 @@ from backend.src.api.beanie_tasks import router as beanie_tasks_router
 from backend.src.api.auth import router as auth_router
 from backend.src.settings import setup
 from backend.src.dbase.beanie_init import initialize_beanie, close_beanie
-from backend.src.bus_rules.middleware import RequestLoggingMiddleware, CORSSecurityMiddleware
+from backend.src.bus_rules.middleware import RequestLoggingMiddleware, CORSSecurityMiddleware, JWTAuthMiddleware
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -37,7 +37,7 @@ app.add_middleware(
 )
 
 # Add JWT auth middleware last (innermost)
-# app.add_middleware(JWTAuthMiddleware, protected_paths=["/users", "/tasks", "/auth/me"])
+app.add_middleware(JWTAuthMiddleware, protected_paths=["/users", "/tasks", "/auth/me"])
 
 # Include routers
 app.include_router(auth_router)

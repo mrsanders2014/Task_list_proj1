@@ -270,14 +270,11 @@ async def get_current_user_from_cookie(request: Request) -> TokenData:
     
     # Fallback: try to get token from cookie and verify it
     token = get_token_from_cookie(request)
-    print(f"DEBUG: get_current_user_from_request - token from cookie: {token}")
     if token:
         try:
             result = verify_token(token)
-            print(f"DEBUG: Token verification successful: {result}")
             return result
-        except HTTPException as e:
-            print(f"DEBUG: Token verification failed: {e}")
+        except HTTPException:
             pass  # Will fall through to the error below
     
     raise HTTPException(
@@ -302,14 +299,11 @@ async def get_user_from_cookie(request: Request) -> TokenData:
     """
     # Try to get token from cookie
     token = get_token_from_cookie(request)
-    print(f"DEBUG: get_user_from_cookie - token from cookie: {token}")
     if token:
         try:
             result = verify_token(token)
-            print(f"DEBUG: Token verification successful: {result}")
             return result
-        except HTTPException as e:
-            print(f"DEBUG: Token verification failed: {e}")
+        except HTTPException:
             pass  # Will fall through to the error below
     
     raise HTTPException(
