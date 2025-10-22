@@ -23,10 +23,10 @@ class AuthService {
    */
   async login(credentials) {
     try {
-      // Use the regular login endpoint (sets httpOnly cookies)
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
       return response.data;
     } catch (error) {
+      
       // Handle specific HTTP error status codes
       const status = error.response?.status;
       
@@ -72,25 +72,23 @@ class AuthService {
 
   /**
    * Get current user information
-   * @returns {Promise<Object>} Current user data
+   * @returns {Promise<Object|null>} Current user data or null if not authenticated
    */
   async getCurrentUser() {
     try {
       const response = await apiClient.get(API_ENDPOINTS.AUTH.ME);
       return response.data;
     } catch (error) {
+      // Handle 401 errors gracefully (user not authenticated)
+      if (error.response?.status === 401) {
+        return null; // Return null instead of throwing error
+      }
+      
       // Handle timeout errors specifically
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
         const timeoutError = new Error('Request timeout. Please check your connection and try again.');
         timeoutError.code = 'TIMEOUT';
         throw timeoutError;
-      }
-      
-      // Handle 401 errors gracefully (user not authenticated)
-      if (error.response?.status === 401) {
-        // Don't try to refresh token here as it might cause infinite loops
-        // The calling code should handle token refresh if needed
-        throw this.handleError(error);
       }
       
       throw this.handleError(error);

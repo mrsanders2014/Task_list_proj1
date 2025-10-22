@@ -34,7 +34,6 @@ class TaskService {
       });
       return response.data;
     } catch (error) {
-      console.error('TaskService: Error in getTasks:', error);
       throw this.handleError(error);
     }
   }

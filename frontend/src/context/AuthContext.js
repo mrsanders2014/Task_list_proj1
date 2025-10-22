@@ -103,27 +103,22 @@ export const AuthProvider = ({ children }) => {
         const user = await authService.getCurrentUser();
         
         if (isMounted) {
-          dispatch({ type: AUTH_ACTIONS.SET_USER, payload: user });
+          if (user) {
+            dispatch({ type: AUTH_ACTIONS.SET_USER, payload: user });
+          } else {
+            dispatch({ type: AUTH_ACTIONS.SET_USER, payload: null });
+          }
         }
       } catch (error) {
         if (!isMounted) return;
         
-        // Handle different types of errors silently
-        if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.code === 'TIMEOUT') {
-          // Don't show timeout errors to user, just silently fail authentication check
-        } else if (error.response?.status === 401) {
-          // User not authenticated - this is normal
-        } else if (error.response?.status >= 500) {
-          // Server error during authentication check
-        } else if (!error.response) {
-          // Network error during authentication check
-        } else {
-          // Authentication check failed
-        }
-        
         // Always set loading to false and user to null on error
         dispatch({ type: AUTH_ACTIONS.SET_USER, payload: null });
-        dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+      } finally {
+        // Ensure loading is always set to false
+        if (isMounted) {
+          dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+        }
       }
     };
 
