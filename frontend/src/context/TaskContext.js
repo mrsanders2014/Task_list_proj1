@@ -157,6 +157,12 @@ export const TaskProvider = ({ children }) => {
   }, []);
 
   const fetchTasks = useCallback(async (customFilters = {}, forceRefresh = false) => {
+    // Don't make API calls if user is not authenticated
+    if (!user || !user.id) {
+      console.log('TaskContext: User not authenticated, skipping fetchTasks');
+      return [];
+    }
+
     const now = Date.now();
     if (!forceRefresh && now - lastFetchTime.current < FETCH_COOLDOWN) {
       return state.tasks; // Return cached data
@@ -177,9 +183,15 @@ export const TaskProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []); // Remove all dependencies to prevent infinite re-renders
+  }, [user]); // Add user as dependency to re-run when user changes
 
   const fetchTask = useCallback(async (taskId) => {
+    // Don't make API calls if user is not authenticated
+    if (!user || !user.id) {
+      console.log('TaskContext: User not authenticated, skipping fetchTask');
+      throw new Error('User not authenticated');
+    }
+
     try {
       setLoading(true);
       const task = await taskService.getTask(taskId);
@@ -189,9 +201,15 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  }, []); // Empty dependency array since this function doesn't depend on any state
+  }, [user]); // Add user as dependency
 
   const createTask = useCallback(async (taskData) => {
+    // Don't make API calls if user is not authenticated
+    if (!user || !user.id) {
+      console.log('TaskContext: User not authenticated, skipping createTask');
+      throw new Error('User not authenticated');
+    }
+
     // Prevent multiple simultaneous createTask calls
     if (state.isLoading) {
       throw new Error('Task creation already in progress');
@@ -211,6 +229,12 @@ export const TaskProvider = ({ children }) => {
   }, [state.isLoading, user]);
 
   const updateTask = useCallback(async (taskId, taskData) => {
+    // Don't make API calls if user is not authenticated
+    if (!user || !user.id) {
+      console.log('TaskContext: User not authenticated, skipping updateTask');
+      throw new Error('User not authenticated');
+    }
+
     try {
       setLoading(true);
       const updatedTask = await taskService.updateTask(taskId, taskData);
@@ -220,9 +244,15 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  }, []);
+  }, [user]);
 
   const deleteTask = useCallback(async (taskId) => {
+    // Don't make API calls if user is not authenticated
+    if (!user || !user.id) {
+      console.log('TaskContext: User not authenticated, skipping deleteTask');
+      throw new Error('User not authenticated');
+    }
+
     try {
       setLoading(true);
       await taskService.deleteTask(taskId);
@@ -231,9 +261,15 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  }, []);
+  }, [user]);
 
   const updateTaskStatus = useCallback(async (taskId, status, reason = '') => {
+    // Don't make API calls if user is not authenticated
+    if (!user || !user.id) {
+      console.log('TaskContext: User not authenticated, skipping updateTaskStatus');
+      throw new Error('User not authenticated');
+    }
+
     try {
       setLoading(true);
       const updatedTask = await taskService.updateTaskStatus(taskId, status, reason);
@@ -243,9 +279,15 @@ export const TaskProvider = ({ children }) => {
       setError(error.message);
       throw error;
     }
-  }, []);
+  }, [user]);
 
   const fetchStatistics = useCallback(async () => {
+    // Don't make API calls if user is not authenticated
+    if (!user || !user.id) {
+      console.log('TaskContext: User not authenticated, skipping fetchStatistics');
+      return null;
+    }
+
     const now = Date.now();
     if (now - lastFetchTime.current < FETCH_COOLDOWN) {
       return state.statistics; // Return cached data
@@ -265,7 +307,7 @@ export const TaskProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []); // Remove state.statistics dependency to prevent unnecessary re-renders
+  }, [user]); // Add user as dependency
 
   const setFilters = useCallback((filters) => {
     dispatch({ type: TASK_ACTIONS.SET_FILTERS, payload: filters });
